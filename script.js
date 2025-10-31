@@ -429,3 +429,141 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// ======== GAME CATALOG + PLAYER ========
+const GAME_JSON = "games/games.json";
+let GAMES = [];
+let currentGame = null;
+
+function $(sel, root = document) { return root.querySelector(sel); }
+function $all(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
+
+async function loadCatalog() {
+  try {
+    const r = await fetch(GAME_JSON, { cache: "no-store" });
+    if (!r.ok) throw new Error("catalog fetch failed");
+    GAMES = await r.json();
+    renderSidebar(GAMES);
+    // Auto-select first game
+    if (GAMES.length) selectGame(GAMES[0].slug);
+  } catch (e) {
+    console.warn("Failed to load games.json:", e);
+    // Fallback: show Plumet 2 if present
+    selectGame("plumet2");
+  }
+}
+
+function renderSidebar(list) {
+  const ul = el("game-list");
+  if (!ul) return;
+  ul.innerHTML = "";
+  for (const g of list) {
+    const li = document.createElement("li");
+    li.role = "option";
+    li.dataset.slug = g.slug;
+    li.textContent = g.title;
+    if (currentGame && currentGame.slug === g.slug) li.setAttribute("aria-selected", "true");
+    li.addEventListener("click", () => selectGame(g.slug));
+    ul.appendChild(li);
+  }
+}
+
+function selectGame(slug) {
+  const g = GAMES.find(x => x.slug === slug) || null;
+  currentGame = g;
+  // Update sidebar selection
+  $all("#game-list li").forEach(li => {
+    li.setAttribute("aria-selected", li.dataset.slug === slug ? "true" : "false");
+  });
+  // Load into player
+  if (!g) {
+    // fallback: try Plumet2 via Ruffle if catalog missing
+    loadSwfOrIframe({ type: "swf", path: "Plumet2.swf", title: "Plumet 2" });
+    return;
+  }
+  loadSwfOrIframe(g);
+}
+
+function loadSwfOrIframe(game) {
+  const frame = el("game-frame");
+  const iframe = el("game-iframe");
+  if (!frame) return;
+
+  // HTML games: iframe
+  if (game.type === "html") {
+    if (iframe) {
+      frame.style.display = "grid";
+      iframe.style.display = "block";
+      // safety
+      iframe.src = game.path;
+    }
+    return;
+  }
+
+  // SWF games: try Ruffle
+  if (game.type === "swf") {
+    // prefer Ruffle embed player if available
+    if (window.RufflePlayer && frame) {
+      const r = window.RufflePlayer.newest();
+      const player = r.createPlayer();
+      frame.innerHTML = "";             // clear iframe container
+      frame.appendChild(player);
+      player.load(game.path);
+      return;
+    }
+    // fallback: keep iframe visible but load nothing
+    if (iframe) {
+      iframe.src = "about:blank";
+    }
+  }
+}
+
+// Search box filtering
+function wireSearch() {
+  const input = el("game-search");
+  if (!input) return;
+  input.addEventListener("input", () => {
+    const q = input.value.toLowerCase().trim();
+    const list = !q ? GAMES : GAMES.filter(g =>
+      g.title.toLowerCase().includes(q) ||
+      (g.tags || []).some(t => t.toLowerCase().includes(q))
+    );
+    renderSidebar(list);
+  });
+}
+
+// Open-blank button should open CURRENT game path if HTML, else the site (as before)
+(function patchOpenBlank() {
+  const btn = el("open-blank");
+  if (!btn) return;
+  btn.addEventListener("click", (e) => {
+    e.preventDefault();
+    const target = (currentGame && currentGame.type === "html") ? currentGame.path : "https://binglover.github.io/";
+    const w = window.open("about:blank", "_blank", "noopener,noreferrer");
+    if (!w) return alert("Popup blocked! Allow popups for this site.");
+    w.opener = null;
+    w.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Classroom</title>
+          <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:; frame-src *; connect-src *; img-src * data: blob:; media-src *;">
+          <style>
+            html,body{margin:0;padding:0;background:black;overflow:hidden}
+            iframe{width:100vw;height:100vh;border:none}
+          </style>
+        </head>
+        <body>
+          <iframe src="${target}"></iframe>
+        </body>
+      </html>
+    `);
+    w.document.close();
+  }, { once: true }); // avoid stacking duplicate handlers if script reloads
+})();
+
+// Boot the catalog after DOM ready (keeps your existing listeners intact):contentReference[oaicite:6]{index=6}
+window.addEventListener("DOMContentLoaded", () => {
+  wireSearch();
+  loadCatalog();
+});
