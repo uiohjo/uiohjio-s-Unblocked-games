@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Spotify Callback</title>
+  </head>
+  <body>
+    <script type="module">
+      const params   = new URLSearchParams(location.search);
+      const code     = params.get("code");
+      const verifier = sessionStorage.getItem("pkce_verifier");
+      const CLIENT_ID = "f5792dc487ef45d2a16dc2e21dbf427e";
+
+      // Use the exact same redirect URI as the authorize step
+      const SAVED_REDIRECT = sessionStorage.getItem("sp_redirect_uri");
+      const REDIRECT_URI = SAVED_REDIRECT || "https://uiohjo.github.io/binglover.github.io-test/callback/"; // pathname ends with /callback/
+
+      async function exchange() {
+        const body = new URLSearchParams({
+          client_id: CLIENT_ID,
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: REDIRECT_URI,   // MUST match exactly
+          code_verifier: verifier
+        });
+
+        const r = await fetch("https://accounts.spotify.com/api/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body
+        });
+
+        if (!r.ok) {
+          alert("Token exchange failed (check redirect URI + trailing slash).");
+          return;
+        }
+
+        const tok = await r.json();
+        const now = Date.now();
+        localStorage.setItem("sp_access_token", tok.access_token);
+        if (tok.refresh_token) localStorage.setItem("sp_refresh_token", tok.refresh_token);
+        localStorage.setItem("sp_expires_at", String(now + (tok.expires_in - 60) * 1000));
+
+        // send the user back to the main page
+        const base = REDIRECT_URI.replace(/\/callback\/?$/, "/");
+        location.href = base + (base.endsWith("/") ? "" : "/") + "?spotify=ok";
+      }
+
+      if (code && verifier) exchange();
+    </script>
+  </body>
+</html>
