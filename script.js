@@ -198,7 +198,7 @@ el("btn-next")?.addEventListener("click", nextTrack);
 
 // --- PKCE setup ---
 const CLIENT_ID = "f5792dc487ef45d2a16dc2e21dbf427e";
-const REDIRECT_URI = "https://uiohjo.github.io/binglover.github.io-test/callback/";
+const REDIRECT_URI = "https://uiohjo.github.io/uiohjio-s-Unblocked-games/callback/";
 const SCOPES = [
   "user-read-currently-playing",
   "user-read-playback-state",
