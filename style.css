@@ -417,3 +417,47 @@ footer {
   .sidebar { max-height: 40vh; }
   #game-iframe { height: 60vh; }
 }
+
+/* Make the main content stretch full width instead of hugging center */
+main[role="main"] {
+  align-items: stretch;          /* was center */
+  justify-content: center;       /* keep page centered overall */
+  width: 100%;
+}
+
+/* Let the card span the page width with a nice max bound */
+.card {
+  width: 100%;
+  max-width: 1440px;             /* tweak: 1280–1600 depending on taste */
+  margin: 0 auto;                /* center the big card in the page */
+}
+
+/* Sidebar left, player fills the rest */
+.player-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;  /* sidebar fixed, player flexible */
+  gap: 16px;
+  width: 100%;
+}
+
+/* Player should actually fill its column */
+.player {
+  min-height: 70vh;
+  width: 100%;
+}
+
+/* Iframe fills player box edge-to-edge */
+#game-iframe {
+  width: 100%;
+  height: 70vh;
+  display: block;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+/* Mobile: stack, but still full width */
+@media (max-width: 980px) {
+  .player-layout { grid-template-columns: 1fr; }
+  #game-iframe { height: 60vh; }
+}
+
