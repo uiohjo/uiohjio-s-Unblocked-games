@@ -250,7 +250,36 @@ function setGoldState(isGold) {
   }
 }
 
+function spinNameOnce(target, finalText) {
+  if (!target || target.dataset.spun === 'true') return;
 
+  const pool = ['Olivi~r', 'Oliver', 'Ol1ver', 'Olivia', '0liver', 'O-L-I-V-E-R', 'Revilo', 'O.G.', 'Oll—', 'Olive?', 'Oli..', 'Oliver Oil'];
+  const duration = 2500;
+  const interval = 70;
+  let i = 0;
+
+  target.classList.add('slotting');
+  target.dataset.spun = 'true'; // prevent triggering twice
+
+  const timer = setInterval(() => {
+    target.textContent = pool[i++ % pool.length];
+  }, interval);
+
+  setTimeout(() => {
+    clearInterval(timer);
+    target.textContent = finalText;
+    target.classList.remove('slotting');
+    target.classList.add('slot-complete');
+    target.setAttribute('aria-label', finalText);
+
+    // ✅ UNHIDE PASSWORD BUTTON
+    const btn = el('password-btn');
+    if (btn) btn.style.display = 'block';
+
+  }, duration);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
   // --- GOLD TITLE + OLIVER SPIN LOGIC ---
   const isGold = Math.floor(Math.random() * 50) === 0;
   setGoldState(isGold);
