@@ -516,39 +516,44 @@ tbody tr:hover { background: rgba(255,255,255,.05); }
 .sidebar,
 .player { border-radius: var(--radius-xl); }
 
-/* --- Fix: stop header from behaving like a giant card --- */
-header[role="banner"]{
-  /* remove any card/glass inheritance */
+/* --- Fix header so it doesn't behave like a big glass card --- */
+header[role="banner"] {
+  /* neutralize the glass group */
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
   border-radius: 0 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 
-  /* keep it tidy and isolated so filters don’t bleed into next section */
+  /* keep header separate + centered */
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding-bottom: 8px;
+
+  /* prevent any visual bleed into the next section */
   isolation: isolate;
-  contain: layout paint; /* prevent visual “wrapping” over the next card */
-  padding-bottom: 6px;
+  contain: layout paint;
 }
 
-/* give the buttons row its own compact glass chip (no HTML change needed) */
-header[role="banner"] > div[style*="margin-top"]{
-  display: inline-flex;
+/* Center the little button row (we’ll target the existing inline-style wrapper) */
+header[role="banner"] > div[style*="margin-top"] {
+  display: inline-flex !important;
+  justify-content: center;
+  align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: 12px;
+
+  /* give the row its own compact frosted chip */
   background: rgba(255,255,255,.07);
   border: 1px solid rgba(255,255,255,.14);
+  border-radius: 12px;
   -webkit-backdrop-filter: blur(10px) saturate(1.05);
   backdrop-filter: blur(10px) saturate(1.05);
 }
 
-/* add a little breathing room so the Play card isn’t touching the header */
-main[role="main"] .card{
+/* Add a touch of breathing room so the Play card doesn't feel "wrapped" */
+main[role="main"] .card {
   margin-top: 10px;
-}
-
-/* keep the player card strong (avoid “squash” look) */
-.player{
-  min-height: 60vh;              /* your original value */
-  box-shadow: var(--shadow), inset 0 0 0 1px rgba(255,255,255,.05);
 }
