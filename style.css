@@ -32,7 +32,14 @@ body {
   100% { background-position: 0% 50%; }
 }
 
-.site { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+.site {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* header stays centered */
+  width: 100%;         /* <-- gives cards a full row to fill */
+}
 
 /* Header stays lightweight, separate from cards */
 header[role="banner"] {
@@ -101,7 +108,7 @@ header[role="banner"] > div[style*="margin-top"] {
 main[role="main"] {
   display: flex !important;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;  /* <-- was center */
   justify-content: center;
   gap: 18px;
   width: 100%;
@@ -109,9 +116,15 @@ main[role="main"] {
 }
 
 /* ---------------- Cards ---------------- */
+/* Make the card truly wide, capped on ultrawide */
 .card {
-  width: 96%; /* less padding on the sides for a wider look */
-  max-width: 1900px; /* go big */
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: transform .3s ease, box-shadow .3s ease;
+
+  width: min(96vw, 1900px);  /* <-- viewport-based width with a cap */
   margin: 0 auto;
 }
 
@@ -177,11 +190,11 @@ main[role="main"] {
   outline: 1px solid var(--border);
 }
 
-/* Let the iframe control height; keep perfect 16:9 and cap nicely */
+/* Sidebar + player: responsive columns, player gets the rest */
 .player-layout {
   display: grid;
-  grid-template-columns: clamp(220px, 18vw, 340px) 1fr; /* narrower sidebar = wider player */
-  gap: 28px;
+  grid-template-columns: clamp(240px, 20vw, 380px) 1fr; /* fixed-ish sidebar + flexible player */
+  gap: 20px;
   width: 100%;
   align-items: start;
 }
