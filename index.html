@@ -27,7 +27,26 @@
       will-change: opacity;
     }
     .bg-layer.hidden { opacity: 0; }
+
     @media (prefers-reduced-motion: reduce) { .bg-layer { transform: none; } }
+
+    /* 👇 make it match the old buttons */
+    #spotify-connect {
+      background: var(--gold-1);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    #spotify-connect:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(255, 215, 0, 0.4);
+    }
   </style>
 
   <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
@@ -37,7 +56,6 @@
   <!-- Dynamic blurred background (behind the page) -->
   <div id="bgA" class="bg-layer hidden"></div>
   <div id="bgB" class="bg-layer hidden"></div>
-  <button id="spotify-connect">Connect Spotify</button>
 
   <!-- hover hotspot to re-open toast -->
   <div id="toast-hotspot" style="position:fixed;left:0;bottom:0;width:64px;height:64px;z-index:2;"></div>
@@ -65,8 +83,10 @@
       <p class="subtle">Aim for the highest score! Compete fairly, flex responsibly.</p>
       <p id="rarity" class="rarity" role="status" aria-live="assertive">You rolled the GOLD variant. Nice.</p>
 
-      <!-- buttons removed on purpose; keeping wrapper to avoid layout shift -->
-      <div style="margin-top: 15px;"></div>
+      <!-- moved Spotify button down here -->
+      <div style="margin-top: 15px;">
+        <button id="spotify-connect">🎧 Connect Spotify</button>
+      </div>
     </header>
 
     <main role="main">
