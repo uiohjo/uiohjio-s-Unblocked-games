@@ -115,8 +115,8 @@ main[role="main"] {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  width: 100%;
-  max-width: 1440px;
+  width: 95%; /* ← widen from 100% max-width to viewport-based */
+  max-width: 1600px; /* ← give it more room on big screens */
   margin: 0 auto;
 }
 
@@ -136,11 +136,10 @@ main[role="main"] {
 /* Responsive sidebar width + align start so heights don't fight */
 .player-layout {
   display: grid;
-  /* responsive sidebar + guaranteed roomy player column */
-  grid-template-columns: clamp(240px, 24vw, 360px) minmax(540px, 1fr);
-  gap: 16px;
+  grid-template-columns: clamp(260px, 24vw, 400px) 1fr; /* slightly larger sidebar and roomy player */
+  gap: 20px;
   width: 100%;
-  align-items: stretch; /* let both columns grow naturally */
+  align-items: start;
 }
 
 .sidebar {
