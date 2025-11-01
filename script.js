@@ -2,10 +2,10 @@
 
 const el = (id) => document.getElementById(id);
 
-const toast   = el("toast");
-const titleEl = el("toast-title");
-const subEl   = el("toast-sub");
-const imgEl   = el("toast-img");
+const toast    = el("toast");
+const titleEl  = el("toast-title");
+const subEl    = el("toast-sub");
+const imgEl    = el("toast-img");
 const controls = el("toast-controls");
 const hotspot  = el("toast-hotspot");
 
@@ -18,13 +18,15 @@ let timer;
 let hideAfterHoverTimer = null;
 let bgFlip = false;
 
-// --- token refresher ---
+/* -------------------------------
+   Spotify token refresher (PKCE)
+-------------------------------- */
 async function getAccessToken() {
   const exp = +localStorage.getItem("sp_expires_at") || 0;
   if (Date.now() < exp) return localStorage.getItem("sp_access_token");
 
   const refresh = localStorage.getItem("sp_refresh_token");
-  if (!refresh) return null; // user may need to reconnect after 1h if no refresh token granted
+  if (!refresh) return null;
 
   const body = new URLSearchParams({
     grant_type: "refresh_token",
@@ -37,27 +39,28 @@ async function getAccessToken() {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body
   });
-
   if (!r.ok) return null;
+
   const tok = await r.json();
   localStorage.setItem("sp_access_token", tok.access_token);
   localStorage.setItem("sp_expires_at", String(Date.now() + (tok.expires_in - 60) * 1000));
   return tok.access_token;
 }
 
-// --- background functions ---
+/* -------------------------------
+   Background helpers
+-------------------------------- */
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
-function setBgLayer(el, url) {
+function setBgLayer(elm, url) {
   const x = rand(20, 80);
   const y = rand(20, 80);
-  el.style.backgroundImage = `url("${url}")`;
-  el.style.backgroundPosition = `${x}% ${y}%`;
+  elm.style.backgroundImage = `url("${url}")`;
+  elm.style.backgroundPosition = `${x}% ${y}%`;
 }
 
 function updateBackground(artUrl) {
   if (!artUrl || !(bgA && bgB)) return;
-
   const img = new Image();
   img.onload = () => {
     const next = bgFlip ? bgA : bgB;
@@ -70,17 +73,19 @@ function updateBackground(artUrl) {
   img.src = artUrl;
 }
 
-// --- polling function ---
+/* -------------------------------
+   Spotify polling + toast
+-------------------------------- */
 async function poll() {
   const token = await getAccessToken();
-  if (!token) return; // not connected yet
+  if (!token) return;
 
   const r = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
     headers: { Authorization: `Bearer ${token}` }
   });
 
-  if (r.status === 204) return; // nothing playing
-  if (!r.ok) return;            // rate-limit? shrug and retry later
+  if (r.status === 204) return;
+  if (!r.ok) return;
 
   const data = await r.json();
   if (!data?.item || !data.is_playing) return;
@@ -98,7 +103,7 @@ async function poll() {
 }
 
 function showToast({ title, artists, art }) {
-  lastToastData = { title, artists, art }; // remember for hover recall
+  lastToastData = { title, artists, art };
   titleEl.textContent = title;
   subEl.textContent = artists;
   imgEl.src = art;
@@ -135,13 +140,12 @@ function forceShowToast(data) {
   controls.style.display = "flex";
 }
 
-// --- hover behavior ---
+/* hover-to-recall behavior */
 if (hotspot) {
   hotspot.addEventListener("mouseenter", () => {
     if (lastToastData) forceShowToast(lastToastData);
   });
 }
-
 if (toast) {
   toast.addEventListener("mouseenter", () => {
     clearTimeout(hideAfterHoverTimer);
@@ -157,7 +161,9 @@ if (toast) {
 
 setInterval(poll, 2500);
 
-// --- Playback control helpers ---
+/* -------------------------------
+   Spotify playback controls
+-------------------------------- */
 async function spotifyControl(endpoint, method = "POST", query = "") {
   const token = await getAccessToken();
   if (!token) return false;
@@ -169,9 +175,8 @@ async function spotifyControl(endpoint, method = "POST", query = "") {
   return r.ok;
 }
 
-async function restartTrack() {
-  return spotifyControl("seek", "PUT", "?position_ms=0");
-}
+async function restartTrack()     { return spotifyControl("seek", "PUT", "?position_ms=0"); }
+async function nextTrack()        { return spotifyControl("next", "POST"); }
 
 async function togglePlayPause() {
   const token = await getAccessToken();
@@ -181,22 +186,18 @@ async function togglePlayPause() {
   });
   if (!stateRes.ok) return false;
   const data = await stateRes.json();
-  if (data && data.is_playing) {
-    return spotifyControl("pause", "PUT");
-  } else {
-    return spotifyControl("play", "PUT");
-  }
-}
-
-async function nextTrack() {
-  return spotifyControl("next", "POST");
+  return data && data.is_playing
+    ? spotifyControl("pause", "PUT")
+    : spotifyControl("play", "PUT");
 }
 
 el("btn-restart")?.addEventListener("click", restartTrack);
 el("btn-playpause")?.addEventListener("click", togglePlayPause);
 el("btn-next")?.addEventListener("click", nextTrack);
 
-// --- PKCE setup ---
+/* -------------------------------
+   PKCE auth (Connect Spotify)
+-------------------------------- */
 const CLIENT_ID = "f5792dc487ef45d2a16dc2e21dbf427e";
 const REDIRECT_URI = "https://uiohjo.github.io/uiohjio-s-Unblocked-games/callback/";
 const SCOPES = [
@@ -206,9 +207,8 @@ const SCOPES = [
 ].join(" ");
 
 const connectBtn = el("spotify-connect");
-
 connectBtn?.addEventListener("click", async () => {
-  const verifier = base64url(crypto.getRandomValues(new Uint8Array(64)));
+  const verifier  = base64url(crypto.getRandomValues(new Uint8Array(64)));
   const challenge = await pkceChallenge(verifier);
   sessionStorage.setItem("pkce_verifier", verifier);
   sessionStorage.setItem("sp_redirect_uri", REDIRECT_URI);
@@ -220,7 +220,6 @@ connectBtn?.addEventListener("click", async () => {
   authUrl.searchParams.set("scope", SCOPES);
   authUrl.searchParams.set("code_challenge_method", "S256");
   authUrl.searchParams.set("code_challenge", challenge);
-
   location.href = authUrl.toString();
 });
 
@@ -228,15 +227,18 @@ function base64url(bytes) {
   return btoa(String.fromCharCode(...bytes))
     .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
-
 async function pkceChallenge(verifier) {
   const data = new TextEncoder().encode(verifier);
   const digest = await crypto.subtle.digest("SHA-256", data);
   return base64url(new Uint8Array(digest));
 }
 
+/* -------------------------------
+   Gold title + (optional) Oliver
+   (Safe: only runs if element exists)
+-------------------------------- */
 function setGoldState(isGold) {
-  const title = el('title');
+  const title  = el('title');
   const rarity = el('rarity');
   if (!title || !rarity) return;
   if (isGold) {
@@ -259,31 +261,29 @@ function spinNameOnce(target, finalText) {
   let i = 0;
 
   target.classList.add('slotting');
-  target.dataset.spun = 'true'; // prevent triggering twice
+  target.dataset.spun = 'true';
 
-  const timer = setInterval(() => {
-    target.textContent = pool[i++ % pool.length];
-  }, interval);
+  const t = setInterval(() => { target.textContent = pool[i++ % pool.length]; }, interval);
 
   setTimeout(() => {
-    clearInterval(timer);
+    clearInterval(t);
     target.textContent = finalText;
     target.classList.remove('slotting');
     target.classList.add('slot-complete');
     target.setAttribute('aria-label', finalText);
-
-    // ✅ UNHIDE PASSWORD BUTTON
-    const btn = el('password-btn');
-    if (btn) btn.style.display = 'block';
-
+    /* password reveal removed */
   }, duration);
 }
 
+/* -------------------------------
+   DOM Ready
+-------------------------------- */
 window.addEventListener('DOMContentLoaded', () => {
-  // --- GOLD TITLE + OLIVER SPIN LOGIC ---
+  // Rare gold title (1-in-50)
   const isGold = Math.floor(Math.random() * 50) === 0;
   setGoldState(isGold);
 
+  // Oliver easter egg (safe if element missing)
   const oliver = el('player-oliver');
   if (oliver) {
     oliver.addEventListener('click', () => spinNameOnce(oliver, 'Ollie G'));
@@ -297,140 +297,22 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  document.getElementById("open-blank").addEventListener("click", () => {
-  const newPage = window.open("about:blank", "_blank");
-
-  if (!newPage) {
-    alert("Popup blocked! Allow popups for this site.");
-    return;
-  }
-
-  newPage.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Classroom</title>
-        <style>
-          body, html {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background: black;
-          }
-          iframe {
-            width: 100vw;
-            height: 100vh;
-            border: none;
-          }
-        </style>
-      </head>
-      <body>
-        <iframe src="https://binglover.github.io/"></iframe>
-      </body>
-    </html>
-  `);
-
-  newPage.document.close();
+  // about:blank launcher (uses current HTML game when available)
+  document.getElementById("open-blank")?.addEventListener("click", () => {
+    const newPage = window.open("about:blank", "_blank");
+    if (!newPage) return alert("Popup blocked! Allow popups for this site.");
+    newPage.document.write(`
+      <!DOCTYPE html><html><head><title>Classroom</title>
+      <style>html,body{margin:0;padding:0;overflow:hidden;background:black}iframe{width:100vw;height:100vh;border:none}</style>
+      </head><body><iframe src="https://binglover.github.io/"></iframe></body></html>
+    `);
+    newPage.document.close();
+  });
 });
 
-  // --- PASSWORD PANEL LOGIC ---
-  const btn = el('password-btn');
-  const panel = el('password-panel');
-  const closeBtn = el('close-panel');
-  const submit = el('password-submit');
-  const input = el('password-input');
-  const msg = el('password-message');
-
-  // Hide password button until Ollie G event
-  if (btn) btn.style.display = 'none';
-
-  if (btn && panel) {
-    btn.addEventListener('click', () => {
-      panel.style.display = 'flex';
-      input.focus();
-    });
-
-    closeBtn.addEventListener('click', () => panel.style.display = 'none');
-
-    panel.addEventListener('click', (e) => {
-      if (e.target === panel) panel.style.display = 'none';
-    });
-
-    submit.addEventListener('click', () => {
-      const entered = input.value.trim();
-
-      // ✅ SECRET KEY: change background to Qing flag
-      if (entered === 'thejock') {
-        msg.textContent = '⚠️ The Icon watches over all.';
-        msg.style.color = 'gold';
-        document.body.style.background = "url('https://i.imgur.com/CgplZ0i.png')";
-        document.body.style.backgroundSize = 'cover';
-        document.body.style.backgroundPosition = 'center';
-        document.body.style.backgroundRepeat = 'no-repeat';
-        panel.style.display = 'none';
-        return;
-      }
-
-      // ✅ MAIN PASSWORD: open about:blank containing GitHub via iframe
-      if (entered === '902197') {
-        msg.textContent = '✅ Access granted!';
-        msg.style.color = 'lime';
-
-        setTimeout(() => {
-          panel.style.display = 'none';
-
-          // Open blank tab and load GitHub in an iframe
-          const newPage = window.open('about:blank', '_blank');
-          if (newPage) {
-            newPage.document.write(`
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <title>Blocked Page</title>
-                <style>
-                  body, html {
-                    margin: 0;
-                    padding: 0;
-                    overflow: hidden;
-                    background: black;
-                  }
-                  iframe {
-                    border: none;
-                    width: 100vw;
-                    height: 100vh;
-                  }
-                </style>
-              </head>
-              <body>
-              <iframe src="https://binglover.github.io"></iframe>
-              </body>
-              </html>
-            `);
-            newPage.document.close();
-          }
-        }, 500);
-        return;
-      }
-
-      // ❌ WRONG PASSWORD
-      msg.textContent = '❌ Incorrect password.';
-      msg.style.color = 'red';
-    });
-  }
-
-  // --- LEADERBOARD NAVIGATION ---
-  const leaderboardBtn = el('goto-leaderboard');
-  if (leaderboardBtn) {
-    leaderboardBtn.addEventListener('click', () => {
-      const section = el('leaderboard-section');
-      if (section) {
-        section.scrollIntoView({ behavior: 'smooth' });
-      }
-    });
-  }
-});
-
-// ======== GAME CATALOG + PLAYER ========
+/* -------------------------------
+   Games catalog + player
+-------------------------------- */
 const GAME_JSON = "games/games.json";
 let GAMES = [];
 let currentGame = null;
@@ -444,11 +326,9 @@ async function loadCatalog() {
     if (!r.ok) throw new Error("catalog fetch failed");
     GAMES = await r.json();
     renderSidebar(GAMES);
-    // Auto-select first game
     if (GAMES.length) selectGame(GAMES[0].slug);
   } catch (e) {
     console.warn("Failed to load games.json:", e);
-    // Fallback: show Plumet 2 if present
     selectGame("plumet2");
   }
 }
@@ -471,13 +351,10 @@ function renderSidebar(list) {
 function selectGame(slug) {
   const g = GAMES.find(x => x.slug === slug) || null;
   currentGame = g;
-  // Update sidebar selection
   $all("#game-list li").forEach(li => {
     li.setAttribute("aria-selected", li.dataset.slug === slug ? "true" : "false");
   });
-  // Load into player
   if (!g) {
-    // fallback: try Plumet2 via Ruffle if catalog missing
     loadSwfOrIframe({ type: "swf", path: "Plumet2.swf", title: "Plumet 2" });
     return;
   }
@@ -485,40 +362,32 @@ function selectGame(slug) {
 }
 
 function loadSwfOrIframe(game) {
-  const frame = el("game-frame");
+  const frame  = el("game-frame");
   const iframe = el("game-iframe");
   if (!frame) return;
 
-  // HTML games: iframe
   if (game.type === "html") {
     if (iframe) {
       frame.style.display = "grid";
       iframe.style.display = "block";
-      // safety
       iframe.src = game.path;
     }
     return;
   }
 
-  // SWF games: try Ruffle
   if (game.type === "swf") {
-    // prefer Ruffle embed player if available
     if (window.RufflePlayer && frame) {
       const r = window.RufflePlayer.newest();
       const player = r.createPlayer();
-      frame.innerHTML = "";             // clear iframe container
+      frame.innerHTML = "";
       frame.appendChild(player);
       player.load(game.path);
       return;
     }
-    // fallback: keep iframe visible but load nothing
-    if (iframe) {
-      iframe.src = "about:blank";
-    }
+    if (iframe) iframe.src = "about:blank";
   }
 }
 
-// Search box filtering
 function wireSearch() {
   const input = el("game-search");
   if (!input) return;
@@ -532,7 +401,7 @@ function wireSearch() {
   });
 }
 
-// Open-blank button should open CURRENT game path if HTML, else the site (as before)
+/* Open-blank -> current HTML game if available */
 (function patchOpenBlank() {
   const btn = el("open-blank");
   if (!btn) return;
@@ -548,21 +417,16 @@ function wireSearch() {
         <head>
           <title>Classroom</title>
           <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:; frame-src *; connect-src *; img-src * data: blob:; media-src *;">
-          <style>
-            html,body{margin:0;padding:0;background:black;overflow:hidden}
-            iframe{width:100vw;height:100vh;border:none}
-          </style>
+          <style>html,body{margin:0;padding:0;background:black;overflow:hidden}iframe{width:100vw;height:100vh;border:none}</style>
         </head>
-        <body>
-          <iframe src="${target}"></iframe>
-        </body>
+        <body><iframe src="${target}"></iframe></body>
       </html>
     `);
     w.document.close();
-  }, { once: true }); // avoid stacking duplicate handlers if script reloads
+  }, { once: true });
 })();
 
-// Boot the catalog after DOM ready (keeps your existing listeners intact):contentReference[oaicite:6]{index=6}
+/* Boot catalog */
 window.addEventListener("DOMContentLoaded", () => {
   wireSearch();
   loadCatalog();
