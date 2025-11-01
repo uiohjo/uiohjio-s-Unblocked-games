@@ -110,13 +110,8 @@ main[role="main"] {
 
 /* ---------------- Cards ---------------- */
 .card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  width: 95%; /* ← widen from 100% max-width to viewport-based */
-  max-width: 1800px; /* ← give it more room on big screens */
+  width: 96%; /* less padding on the sides for a wider look */
+  max-width: 1900px; /* go big */
   margin: 0 auto;
 }
 
@@ -183,20 +178,14 @@ main[role="main"] {
 }
 
 /* Let the iframe control height; keep perfect 16:9 and cap nicely */
-.player {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  /* let iframe set the height, but keep the box nice and tall */
-  min-height: 0;
-  height: auto;
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-  overflow: hidden;
-  padding: 0; /* no accidental squish */
+.player-layout {
+  display: grid;
+  grid-template-columns: clamp(220px, 18vw, 340px) 1fr; /* narrower sidebar = wider player */
+  gap: 28px;
+  width: 100%;
+  align-items: start;
 }
+
 
 #game-iframe {
   /* BIG, predictable, no more postage stamp */
