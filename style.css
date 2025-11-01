@@ -390,9 +390,6 @@ main[role="main"] { align-items: stretch; justify-content: center; width: 100%; 
 #game-iframe { width: 100%; height: 70vh; display: block; border: none; border-radius: calc(var(--radius) - 2px); }
 @media (max-width: 980px) { .player-layout { grid-template-columns: 1fr; } #game-iframe { height: 60vh; } }
 
-/* =========================
-   ✨ Upgrades for usability
-   ========================= */
 :where(a, button, input, .sidebar__list li):focus-visible {
   outline: none;
   box-shadow: var(--glow-soft), 0 0 0 1.5px var(--ring) inset;
@@ -404,3 +401,117 @@ main[role="main"] { align-items: stretch; justify-content: center; width: 100%; 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* 1) Rounder corners everywhere (keep your base var intact) */
+:root {
+  --radius-xl: 22px;               /* big, but tasteful */
+  --glass-bg: rgba(255,255,255,.07);
+  --glass-border: rgba(255,255,255,.14);
+  --glass-inner: rgba(255,255,255,.05);
+}
+
+/* 2) Hide the leaderboard (CSS-only, safe fallbacks) */
+#leaderboard,
+.section--leaderboard,
+.card.leaderboard,
+a[href*="leaderboard"],
+[aria-label="Leaderboard"] { display: none !important; }
+
+/* 3) Glassmorphism upgrade on existing components */
+header[role="banner"],
+.card,
+.sidebar,
+.player,
+.game-frame,
+#password-panel .panel-content {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(10px) saturate(1.05);
+  -webkit-backdrop-filter: blur(10px) saturate(1.05);
+  box-shadow:
+    0 8px 30px rgba(0,0,0,.35),
+    inset 0 0 0 1px var(--glass-inner); /* inner stroke = “expensive” */
+}
+
+/* 4) Softer hover & lift for cards/lists */
+.card {
+  transition: transform .25s ease, box-shadow .25s ease, background .25s ease, border-color .25s ease;
+}
+.card:hover {
+  transform: translateY(-5px);
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.20);
+  box-shadow: 0 16px 52px rgba(0,0,0,.48);
+}
+
+/* 5) Inputs & search: pill-ish, glassy */
+.sidebar__search input,
+#password-panel input {
+  border-radius: 12px;
+  background: rgba(255,255,255,.09);
+  border: 1px solid var(--glass-border);
+  transition: background .2s, border-color .2s, box-shadow .2s;
+}
+.sidebar__search input:focus,
+#password-panel input:focus {
+  background: rgba(255,255,255,.12);
+  border-color: var(--ring);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring), transparent 82%);
+  outline: none;
+}
+
+/* 6) Sidebar list items: rounder + glass tap highlight */
+.sidebar__list li {
+  border-radius: 12px;
+  transition: background .18s, transform .06s, box-shadow .18s;
+}
+.sidebar__list li:hover { background: rgba(255,255,255,.08); }
+.sidebar__list li[aria-selected="true"] {
+  background: rgba(255,255,255,.12);
+  outline: 1px solid rgba(255,255,255,.16);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+}
+
+/* 7) Game frame: keep 16:9 but add subtle inner glow */
+.game-frame {
+  box-shadow:
+    0 10px 30px rgba(0,0,0,.38),
+    inset 0 0 0 1px rgba(255,255,255,.05);
+}
+.game-frame object,
+.game-frame embed {
+  border-radius: calc(var(--radius-xl) - 2px);
+}
+
+/* 8) Buttons: golden glass */
+#password-btn,
+#password-panel button {
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--gold-2), var(--gold-1));
+  box-shadow:
+    0 10px 30px rgba(0,0,0,.35),
+    inset 0 0 0 1px rgba(255,255,255,.25);
+  transition: transform .08s ease, filter .15s ease, box-shadow .2s ease;
+}
+#password-btn:hover,
+#password-panel button:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 16px 50px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.3);
+}
+#password-btn:active,
+#password-panel button:active { transform: translateY(1px); }
+
+/* 9) Tables: faint row separators, glass header */
+thead th {
+  background: linear-gradient(to bottom, rgba(255,255,255,.03), transparent);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  border-top-left-radius: 10px; border-top-right-radius: 10px;
+}
+tbody td { border-top: 1px solid rgba(255,255,255,.08); }
+tbody tr:hover { background: rgba(255,255,255,.05); }
+
+/* 10) Round the big containers just a bit more */
+.card,
+.sidebar,
+.player { border-radius: var(--radius-xl); }
