@@ -17,20 +17,17 @@
   <style>
     .bg-layer {
       position: fixed; inset: 0;
-      z-index: -1; /* sit behind the site */
+      z-index: -1;
       background-size: cover;
       background-position: 50% 50%;
       filter: blur(40px) brightness(0.65) saturate(1.2);
-      transform: scale(1.18);         /* subtle zoom */
-      transition: opacity 600ms ease;  /* crossfade */
+      transform: scale(1.18);
+      transition: opacity 600ms ease;
       opacity: 1;
       will-change: opacity;
     }
     .bg-layer.hidden { opacity: 0; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .bg-layer { transform: none; }
-    }
+    @media (prefers-reduced-motion: reduce) { .bg-layer { transform: none; } }
   </style>
 
   <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
@@ -55,7 +52,6 @@
       <div id="toast-sub"   style="opacity:.85;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
     </div>
 
-    <!-- NEW controls -->
     <div id="toast-controls" style="display:none;gap:8px;margin-left:8px">
       <button id="btn-restart"   title="Restart track"    style="cursor:pointer;border:0;border-radius:6px;padding:6px 8px;background:#2a2a2a;color:#fff">⟲</button>
       <button id="btn-playpause" title="Play/Pause"       style="cursor:pointer;border:0;border-radius:6px;padding:6px 8px;background:#2a2a2a;color:#fff">⏯</button>
@@ -68,29 +64,9 @@
       <h1 id="title" class="title" aria-live="polite">Plumet Tournament</h1>
       <p class="subtle">Aim for the highest score! Compete fairly, flex responsibly.</p>
       <p id="rarity" class="rarity" role="status" aria-live="assertive">You rolled the GOLD variant. Nice.</p>
-      <div style="margin-top: 15px;">
-        <button id="goto-files"
-          style="background: var(--gold-1); color: #000; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-weight: 600;"
-          onclick="fetch('clSINGLEFILE.html').then(r => r.text()).then(t => { 
-            const w = window.open('about:blank','_blank'); 
-            w.document.write(t); w.document.close(); 
-          });">
-          📁 View All Files
-        </button>
 
-        <button id="open-blank" style="
-          background: var(--gold-1);
-          color: #000;
-          border: none;
-          border-radius: 8px;
-          padding: 8px 14px;
-          cursor: pointer;
-          font-weight: 600;
-        ">
-          🚀 Run in about:blank
-        </button>
-        <!-- Leaderboard button removed -->
-      </div>
+      <!-- buttons removed on purpose; keeping wrapper to avoid layout shift -->
+      <div style="margin-top: 15px;"></div>
     </header>
 
     <main role="main">
@@ -110,7 +86,6 @@
 
             <!-- Player -->
             <div class="player" id="game-frame" aria-label="Game Player">
-              <!-- We use an iframe for HTML games; we still support SWF via Ruffle when chosen -->
               <iframe id="game-iframe"
                       title="Game"
                       sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-popups"
