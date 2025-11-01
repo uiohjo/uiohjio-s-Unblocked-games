@@ -136,10 +136,11 @@ main[role="main"] {
 /* Responsive sidebar width + align start so heights don't fight */
 .player-layout {
   display: grid;
-  grid-template-columns: clamp(220px, 24vw, 360px) 1fr;
+  /* responsive sidebar + guaranteed roomy player column */
+  grid-template-columns: clamp(240px, 24vw, 360px) minmax(540px, 1fr);
   gap: 16px;
   width: 100%;
-  align-items: start;
+  align-items: stretch; /* let both columns grow naturally */
 }
 
 .sidebar {
@@ -188,21 +189,25 @@ main[role="main"] {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  min-height: 0;           /* was 70vh */
+  /* let iframe set the height, but keep the box nice and tall */
+  min-height: 0;
   height: auto;
-  display: grid;
-  place-items: stretch;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
   overflow: hidden;
+  padding: 0; /* no accidental squish */
 }
 
 #game-iframe {
+  /* BIG, predictable, no more postage stamp */
   width: 100%;
-  height: auto;            /* was 70vh */
-  aspect-ratio: 16 / 9;    /* keep true 16:9 */
-  max-height: clamp(320px, 62vh, 820px);
+  height: clamp(380px, 70vh, 920px); /* scale with viewport, but stay beefy */
   border: 0;
   display: block;
   border-radius: calc(var(--radius) - 2px);
+  /* remove aspect-ratio so height truly rules */
+  aspect-ratio: auto;
 }
 
 /* --------------- Tables --------------- */
