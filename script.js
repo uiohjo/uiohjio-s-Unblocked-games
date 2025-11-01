@@ -233,6 +233,47 @@ async function pkceChallenge(verifier) {
   return base64url(new Uint8Array(digest));
 }
 
+// === On-load init: if connected & playing, show toast immediately ===
+async function initSpotifyOnLoad() {
+  // Try to get a valid token (refresh if needed)
+  const token = await getAccessToken();
+  if (!token) {
+    // Not connected yet; leave the button as-is
+    return;
+  }
+
+  // Optional: reflect connected state on the button (visual only)
+  const btn = el('spotify-connect');
+  if (btn) {
+    btn.textContent = 'Spotify Connected';
+    btn.disabled = true;
+    btn.style.opacity = '0.85';
+    btn.style.cursor = 'default';
+  }
+
+  // Check current playback once on load
+  try {
+    const r = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (r.status === 204 || !r.ok) return; // nothing playing or API not happy
+
+    const data = await r.json();
+    if (data?.item && data.is_playing) {
+      // Prevent the poll() from double-firing the same song animation right after
+      lastTrackId = data.item.id;
+
+      showToast({
+        title: data.item.name,
+        artists: data.item.artists.map(a => a.name).join(", "),
+        art: data.item.album.images?.[0]?.url || ""
+      });
+    }
+  } catch (_) {
+    // ignore; we'll try again via the interval poll
+  }
+}
+
 /* -------------------------------
    Gold title + (optional) Oliver
    (Safe: only runs if element exists)
@@ -279,7 +320,7 @@ function spinNameOnce(target, finalText) {
    DOM Ready
 -------------------------------- */
 window.addEventListener('DOMContentLoaded', () => {
-  // Rare gold title (1-in-50)
+   initSpotifyOnLoad();
   const isGold = Math.floor(Math.random() * 50) === 0;
   setGoldState(isGold);
 
