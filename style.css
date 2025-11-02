@@ -270,3 +270,9 @@ footer {
   /* on mobile, keep your taller view */
   #game-iframe { height: 60vh; aspect-ratio: auto; }
 }
+
+.card__title.motif {
+  white-space: normal;     /* allow wrapping */
+  line-height: 1.25;
+  font-weight: 600;
+}
