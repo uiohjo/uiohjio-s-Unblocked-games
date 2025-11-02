@@ -31,6 +31,68 @@ body {
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+/* ===== Idle / Screensaver ===== */
+#idle-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;                /* above site, under toasts if you want: bump if needed */
+  display: none;
+  opacity: 0;
+  transition: opacity .35s ease;
+  /* keep your existing bg layers visible; we only fade UI */
+  pointer-events: none;         /* exit is handled by global listeners */
+}
+
+/* big centered art card */
+#idle-overlay .idle-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+  width: min(58vh, 520px);
+  height: min(58vh, 520px);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow:
+    0 40px 120px rgba(0,0,0,.55),
+    0 2px 0 rgba(255,255,255,.04) inset;
+  backdrop-filter: blur(2px);
+}
+#idle-overlay #idle-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: contrast(1.02) saturate(1.02);
+}
+
+/* bottom-left track text */
+#idle-overlay .idle-meta {
+  position: absolute;
+  left: 52px;
+  bottom: 46px;
+  color: #fff;
+  text-shadow: 0 6px 28px rgba(0,0,0,.55);
+  max-width: min(60vw, 720px);
+  line-height: 1.15;
+}
+#idle-overlay #idle-title {
+  font-weight: 700;
+  font-size: clamp(18px, 2.2vw + 8px, 28px);
+  letter-spacing: .2px;
+}
+#idle-overlay #idle-artist {
+  opacity: .9;
+  font-size: clamp(12px, 1.2vw + 6px, 16px);
+}
+
+/* when active */
+#idle-overlay.is-visible { display:block; opacity:1; }
+
+/* softly fade out main UI, leave bg layers alone */
+body.idle .site { opacity: 0; transition: opacity .35s ease; pointer-events: none; }
+
+
 
 .site {
   position: relative;
