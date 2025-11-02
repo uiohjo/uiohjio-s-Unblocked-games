@@ -19,7 +19,7 @@ let hideAfterHoverTimer = null;
 let bgFlip = false;
 
 /* -------------------------------
-   Jamie Page motif logic
+   Jamie Page motif logic (robust)
 -------------------------------- */
 const JAMIE_PAGE_TITLES = new Set([
   "dyad","not quite there","rot for clout","i wish that i could fall",
@@ -27,15 +27,21 @@ const JAMIE_PAGE_TITLES = new Set([
   "my darling my companion","machine love","birdbrain","shiny chariot",
   "strawberry","manifesto","dance delightful"
 ]);
-const JAMIE_MOTIF = "baby do you know what you wanna hear, cause you can hear the word make it oh so clear";
-function normalize(s){ return (s||"").toLowerCase().trim(); }
-function isJamiePageHit(artistsStr, titleStr){
-  const a = normalize(artistsStr);
-  const t = normalize(titleStr);
-  // Accept "Jamie Page" and "Jamie Paige" just in case
-  const artistLooksRight = /\bjamie\s+pa(i|)ge\b/.test(a);
-  return artistLooksRight && JAMIE_PAGE_TITLES.has(t);
+const JAMIE_MOTIF =
+  "baby do you know what you wanna hear, cause you can hear the word make it oh so clear";
+
+function norm(s){ return (s||"").toLowerCase().trim(); }
+
+function isJamieArtist(artistsArr){
+  // Accept “Jamie Page” and “Jamie Paige”
+  return (artistsArr || []).some(a => /\bjamie\s+pa(i)?ge\b/i.test(a?.name || ""));
 }
+
+function isJamieTrack(spotifyItem){
+  const title = norm(spotifyItem?.name);
+  return isJamieArtist(spotifyItem?.artists) && JAMIE_PAGE_TITLES.has(title);
+}
+
 function setPlayHeading(motifOn){
   const playH2 = document.querySelector('.card__header .card__title');
   if(!playH2) return;
@@ -43,12 +49,10 @@ function setPlayHeading(motifOn){
   playH2.textContent = motifOn ? JAMIE_MOTIF : playH2.dataset.defaultText;
   playH2.classList.toggle('motif', !!motifOn);
 }
-function applyMotifFromNowPlaying(nowPlaying){
-  try {
-    const title   = nowPlaying?.name || "";
-    const artists = (nowPlaying?.artists || []).map(a => a.name).join(", ");
-    setPlayHeading(isJamiePageHit(artists, title));
-  } catch(_) {}
+
+/** Call this whenever you have a full Spotify “item” object */
+function applyMotifFromNowPlayingItem(item){
+  setPlayHeading(!!item && isJamieTrack(item));
 }
 
 /* -------------------------------
@@ -123,11 +127,12 @@ async function poll() {
   const data = await r.json();
   if (!data?.item || !data.is_playing) { setPlayHeading(false); return; }
 
-  // Always evaluate motif on the current track
-  applyMotifFromNowPlaying(data.item);
+  // Evaluate motif on the current track (single, correct call)
+  applyMotifFromNowPlayingItem(data.item);
 
   const id = data.item.id;
   const isStart = id !== lastTrackId && (data.progress_ms ?? 0) < 2500;
+
   if (isStart) {
     lastTrackId = id;
     showToast({
@@ -140,16 +145,17 @@ async function poll() {
 
 function showToast({ title, artists, art }) {
   lastToastData = { title, artists, art };
+
+  // Motif evaluation for toast (build a minimal item)
+  applyMotifFromNowPlayingItem({
+    name: title,
+    artists: (artists || "").split(", ").map(n => ({ name: n }))
+  });
+
   titleEl.textContent = title;
   subEl.textContent = artists;
   imgEl.src = art;
   updateBackground(art);
-
-  // Motif evaluation on toast display
-  applyMotifFromNowPlaying({
-    name: title,
-    artists: artists.split(", ").map(n => ({ name:n }))
-  });
 
   toast.style.display = "flex";
   toast.style.opacity = 0;
@@ -174,7 +180,7 @@ function forceShowToast(data) {
   updateBackground(data.art);
 
   // Motif evaluation on hover-recall
-  applyMotifFromNowPlaying({
+  applyMotifFromNowPlayingItem({
     name: data.title,
     artists: (data.artists || "").split(", ").map(n => ({ name:n }))
   });
@@ -303,7 +309,7 @@ async function initSpotifyOnLoad() {
     const data = await r.json();
     if (data?.item && data.is_playing) {
       // Set motif immediately on load
-      applyMotifFromNowPlaying(data.item);
+      applyMotifFromNowPlayingItem(data.item);
 
       // Prevent double-toast on first poll
       lastTrackId = data.item.id;
@@ -323,7 +329,6 @@ async function initSpotifyOnLoad() {
 
 /* -------------------------------
    Gold title + (optional) Oliver
-   (Safe: only runs if element exists)
 -------------------------------- */
 function setGoldState(isGold) {
   const title  = el('title');
@@ -359,7 +364,6 @@ function spinNameOnce(target, finalText) {
     target.classList.remove('slotting');
     target.classList.add('slot-complete');
     target.setAttribute('aria-label', finalText);
-    /* password reveal removed */
   }, duration);
 }
 
