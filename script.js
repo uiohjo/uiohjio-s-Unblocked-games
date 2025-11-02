@@ -18,6 +18,48 @@ let timer;
 let hideAfterHoverTimer = null;
 let bgFlip = false;
 
+/* ===== Idle / Screensaver handles ===== */
+const idleOverlay = el('idle-overlay');
+const idleArt     = el('idle-art');
+const idleTitle   = el('idle-title');
+const idleArtist  = el('idle-artist');
+
+let idleTimer = null;
+const IDLE_TIMEOUT_MS = 120000; // 2 minutes
+
+function updateIdleOverlayFromTrack(title, artistsCsv, artUrl) {
+  if (idleTitle)  idleTitle.textContent  = title || 'Nothing playing';
+  if (idleArtist) idleArtist.textContent = artistsCsv || '—';
+  if (idleArt && artUrl) idleArt.src = artUrl;
+}
+function enterIdle() {
+  if (document.body.classList.contains('idle')) return;
+  // use last known track if we have it
+  if (lastToastData) {
+    updateIdleOverlayFromTrack(lastToastData.title, lastToastData.artists, lastToastData.art);
+  }
+  document.body.classList.add('idle');
+  idleOverlay?.classList.add('is-visible');
+}
+function exitIdle() {
+  if (!document.body.classList.contains('idle')) return;
+  document.body.classList.remove('idle');
+  idleOverlay?.classList.remove('is-visible');
+}
+function scheduleIdle() {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    // optional gate: only idle if a game iframe isn't focused
+    const iframe = document.getElementById('game-iframe');
+    const overGame = iframe && iframe.offsetParent !== null && document.activeElement === iframe;
+    if (!overGame) enterIdle();
+  }, IDLE_TIMEOUT_MS);
+}
+function resetIdle() {
+  exitIdle();
+  scheduleIdle();
+}
+
 /* -------------------------------
    Jamie Page motif logic (robust)
 -------------------------------- */
@@ -146,6 +188,9 @@ async function poll() {
 function showToast({ title, artists, art }) {
   lastToastData = { title, artists, art };
 
+  // Keep idle overlay in sync with latest track
+  updateIdleOverlayFromTrack(title, artists, art);
+
   // Motif evaluation for toast (build a minimal item)
   applyMotifFromNowPlayingItem({
     name: title,
@@ -174,6 +219,10 @@ function showToast({ title, artists, art }) {
 
 function forceShowToast(data) {
   if (!data) return;
+
+  // Keep idle overlay in sync on hover-recall
+  updateIdleOverlayFromTrack(data.title, data.artists, data.art || "");
+
   titleEl.textContent = data.title;
   subEl.textContent = data.artists;
   imgEl.src = data.art || "";
@@ -311,6 +360,13 @@ async function initSpotifyOnLoad() {
       // Set motif immediately on load
       applyMotifFromNowPlayingItem(data.item);
 
+      // Idle overlay: seed with current track
+      updateIdleOverlayFromTrack(
+        data.item.name,
+        data.item.artists.map(a => a.name).join(", "),
+        data.item.album.images?.[0]?.url || ""
+      );
+
       // Prevent double-toast on first poll
       lastTrackId = data.item.id;
 
@@ -399,6 +455,11 @@ window.addEventListener('DOMContentLoaded', () => {
     `);
     newPage.document.close();
   });
+
+  /* --- Idle mode activity listeners --- */
+  const activityEvents = ['pointerdown','mousemove','keydown','wheel','touchstart','scroll'];
+  activityEvents.forEach(ev => window.addEventListener(ev, resetIdle, { passive: true }));
+  scheduleIdle();
 });
 
 /* -------------------------------
