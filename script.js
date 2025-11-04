@@ -24,7 +24,12 @@ let bgFlip = false;
 const AMBIENT_TRACKS = [
   // TODO: replace with your files/paths
   "audio/Wii_U_Menu_Music_-_Mii Maker_(Part 2).mp3",
-  "audio/mii_maker_loop_2.mp3"
+  "audio/03_-_System_Music_-_First_Time_Setup_(TV).mp3",
+   "audio/Transfer_Menu.mp3", 
+   "audio/eShop_Menu_(Track 1).mp3",
+   "audio/WiiU_Chat_Lobby_(TV).mp3",
+   "audio/eShop_Menu_(Track 6).mp3",
+   "audio/Registration_Method_(Gamepad).mp3"
 ];
 const AMBIENT_PREF_KEY = "ambient_pref"; // "on" | "off"
 const AMBIENT_VOL_KEY  = "ambient_vol";  // "0.0".."1.0"
