@@ -23,7 +23,7 @@ let bgFlip = false;
    ========================================= */
 const AMBIENT_TRACKS = [
   // TODO: replace with your files/paths
-  "audio/mii_maker_loop_1.mp3",
+  "audio/Wii_U_Menu_Music_-_Mii Maker_(Part 2).mp3",
   "audio/mii_maker_loop_2.mp3"
 ];
 const AMBIENT_PREF_KEY = "ambient_pref"; // "on" | "off"
