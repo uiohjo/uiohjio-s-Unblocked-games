@@ -65,6 +65,22 @@
   background: rgba(255, 255, 255, 0.35);
   box-shadow: 0 6px 25px rgba(255, 255, 255, 0.4);
 }
+
+#ambient-toggle{
+  background: rgba(255,255,255,0.20);
+  color:#fff;
+  border:1px solid rgba(255,255,255,0.28);
+  border-radius:10px;
+  padding:10px 14px;
+  font-weight:600;
+  cursor:pointer;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease;
+}
+#ambient-toggle:hover{ transform: translateY(-2px); background: rgba(255,255,255,0.30); }
+#ambient-toggle[aria-pressed="true"]{ background: rgba(255,255,255,0.35); }
+  
   </style>
 
   <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
@@ -106,6 +122,9 @@
   <button id="ugs-doc" onclick="window.open('https://docs.google.com/document/d/1_FmH3BlSBQI7FGgAQL59-ZPe8eCxs35wel6JUyVaG8Q/edit?tab=t.0','_blank')">
     Link to UGS Doc
   </button>
+<button id="ambient-toggle" aria-pressed="false" hidden>
+  Site Music
+</button>
 </div>
 
     <main role="main">
@@ -135,17 +154,15 @@
         </div>
       </section>
     </main>
-  </div> <!-- ✅ close .site here -->
-
-  <!-- Idle / Screensaver overlay (sibling of .site, not inside it) -->
-  <div id="idle-overlay" aria-hidden="true">
-    <div class="idle-center">
-      <img id="idle-art" alt="" />
-    </div>
-    <div class="idle-meta">
-      <div id="idle-title">Nothing playing</div>
-      <div id="idle-artist">—</div>
-    </div>
+      <!-- Idle / Screensaver overlay -->
+<div id="idle-overlay" aria-hidden="true">
+  <div class="idle-center">
+    <img id="idle-art" alt="" />
   </div>
+  <div class="idle-meta">
+    <div id="idle-title">Nothing playing</div>
+    <div id="idle-artist">—</div>
+  </div>
+</div>
 </body>
 </html>
