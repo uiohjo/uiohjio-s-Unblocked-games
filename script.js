@@ -18,6 +18,146 @@ let timer;
 let hideAfterHoverTimer = null;
 let bgFlip = false;
 
+/* =========================================
+   Ambient site music (fallback when no Spotify)
+   ========================================= */
+const AMBIENT_TRACKS = [
+  // TODO: replace with your files/paths
+  "audio/mii_maker_loop_1.mp3",
+  "audio/mii_maker_loop_2.mp3"
+];
+const AMBIENT_PREF_KEY = "ambient_pref"; // "on" | "off"
+const AMBIENT_VOL_KEY  = "ambient_vol";  // "0.0".."1.0"
+
+const ambient = {
+  audio: null,
+  idx: 0,
+  fadeTimer: null,
+  ui: null,
+  isEnabled: true,     // default: ON (user can toggle)
+  isVisible: false,    // button visible only when Spotify is NOT connected
+  volume: 0.35,
+
+  ensureUIButton() {
+    // try to find existing button; if not, create one next to spotify button
+    let btn = document.getElementById('ambient-toggle');
+    if (!btn) {
+      const sibling = document.getElementById('spotify-connect');
+      btn = document.createElement('button');
+      btn.id = 'ambient-toggle';
+      btn.hidden = true;
+      btn.textContent = "🔈 Site Music";
+      // place right after the spotify button if we can
+      sibling?.parentNode?.insertBefore(btn, sibling.nextSibling);
+    }
+    return btn;
+  },
+
+  init(){
+    this.ui = this.ensureUIButton();
+    if (!this.ui) return;
+
+    // restore prefs
+    const pref = localStorage.getItem(AMBIENT_PREF_KEY);
+    if (pref) this.isEnabled = pref === "on";
+    const v = parseFloat(localStorage.getItem(AMBIENT_VOL_KEY) || "0.35");
+    if (!Number.isNaN(v)) this.volume = Math.min(1, Math.max(0, v));
+
+    // prepare audio element
+    this.audio = new Audio();
+    this.audio.preload = "auto";
+    this.audio.loop = false;
+    this.audio.volume = 0;
+    this.audio.addEventListener("ended", () => this.next());
+    this.pickSource();
+
+    // UI wiring
+    this.ui.addEventListener("click", () => {
+      if (!this.isEnabled) {
+        this.isEnabled = true;
+        localStorage.setItem(AMBIENT_PREF_KEY, "on");
+        this.playWithGesture();
+      } else {
+        this.isEnabled = false;
+        localStorage.setItem(AMBIENT_PREF_KEY, "off");
+        this.fadeOut(220);
+      }
+      this.updateUI();
+    });
+
+    // first-gesture bootstrap (for autoplay policies)
+    const oneTimeStart = () => {
+      if (this.isVisible && this.isEnabled && this.audio?.paused) {
+        this.playWithGesture();
+      }
+      window.removeEventListener("pointerdown", oneTimeStart, {capture:true});
+      window.removeEventListener("keydown", oneTimeStart, {capture:true});
+    };
+    window.addEventListener("pointerdown", oneTimeStart, {capture:true, once:true});
+    window.addEventListener("keydown", oneTimeStart, {capture:true, once:true});
+
+    this.updateUI();
+  },
+
+  setVisible(show){
+    this.isVisible = !!show;
+    if (!this.ui) return;
+    this.ui.hidden = !show;
+    if (!show) {
+      this.fadeOut(200);
+    } else {
+      this.updateUI();
+    }
+  },
+
+  updateUI(){
+    if (!this.ui) return;
+    this.ui.setAttribute("aria-pressed", String(this.isEnabled));
+    this.ui.textContent = this.isEnabled ? "🔊 Site Music" : "🔈 Site Music";
+  },
+
+  pickSource(){
+    if (!AMBIENT_TRACKS.length || !this.audio) return;
+    if (this.idx >= AMBIENT_TRACKS.length) this.idx = 0;
+    this.audio.src = AMBIENT_TRACKS[this.idx];
+  },
+
+  next(){
+    this.idx = (this.idx + 1) % AMBIENT_TRACKS.length;
+    this.pickSource();
+    if (this.isEnabled) this.safePlay();
+  },
+
+  async playWithGesture(){
+    await this.safePlay();
+    this.fadeTo(this.volume, 250);
+  },
+
+  async safePlay(){
+    try { await this.audio.play(); } catch { /* blocked until next gesture */ }
+  },
+
+  fadeTo(target, ms=250){
+    if (!this.audio) return;
+    clearInterval(this.fadeTimer);
+    const start = this.audio.volume;
+    const delta = target - start;
+    const steps = Math.max(1, Math.round(ms / 16));
+    let i = 0;
+    this.fadeTimer = setInterval(() => {
+      i++;
+      const v = start + (delta * (i/steps));
+      this.audio.volume = Math.min(1, Math.max(0, v));
+      if (i >= steps) clearInterval(this.fadeTimer);
+    }, 16);
+  },
+
+  fadeOut(ms=200){
+    this.fadeTo(0, ms);
+    setTimeout(() => { try { this.audio.pause(); } catch {} }, ms + 20);
+  }
+};
+
 /* ===== Idle / Screensaver handles ===== */
 const idleOverlay = el('idle-overlay');
 const idleArt     = el('idle-art');
@@ -34,7 +174,6 @@ function updateIdleOverlayFromTrack(title, artistsCsv, artUrl) {
 }
 function enterIdle() {
   if (document.body.classList.contains('idle')) return;
-  // use last known track if we have it
   if (lastToastData) {
     updateIdleOverlayFromTrack(lastToastData.title, lastToastData.artists, lastToastData.art);
   }
@@ -49,7 +188,6 @@ function exitIdle() {
 function scheduleIdle() {
   clearTimeout(idleTimer);
   idleTimer = setTimeout(() => {
-    // optional gate: only idle if a game iframe isn't focused
     const iframe = document.getElementById('game-iframe');
     const overGame = iframe && iframe.offsetParent !== null && document.activeElement === iframe;
     if (!overGame) enterIdle();
@@ -75,15 +213,12 @@ const JAMIE_MOTIF =
 function norm(s){ return (s||"").toLowerCase().trim(); }
 
 function isJamieArtist(artistsArr){
-  // Accept “Jamie Page” and “Jamie Paige”
   return (artistsArr || []).some(a => /\bjamie\s+pa(i)?ge\b/i.test(a?.name || ""));
 }
-
 function isJamieTrack(spotifyItem){
   const title = norm(spotifyItem?.name);
   return isJamieArtist(spotifyItem?.artists) && JAMIE_PAGE_TITLES.has(title);
 }
-
 function setPlayHeading(motifOn){
   const playH2 = document.querySelector('.card__header .card__title');
   if(!playH2) return;
@@ -91,8 +226,6 @@ function setPlayHeading(motifOn){
   playH2.textContent = motifOn ? JAMIE_MOTIF : playH2.dataset.defaultText;
   playH2.classList.toggle('motif', !!motifOn);
 }
-
-/** Call this whenever you have a full Spotify “item” object */
 function applyMotifFromNowPlayingItem(item){
   setPlayHeading(!!item && isJamieTrack(item));
 }
@@ -130,14 +263,12 @@ async function getAccessToken() {
    Background helpers
 -------------------------------- */
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-
 function setBgLayer(elm, url) {
   const x = rand(20, 80);
   const y = rand(20, 80);
   elm.style.backgroundImage = `url("${url}")`;
   elm.style.backgroundPosition = `${x}% ${y}%`;
 }
-
 function updateBackground(artUrl) {
   if (!artUrl || !(bgA && bgB)) return;
   const img = new Image();
@@ -169,7 +300,6 @@ async function poll() {
   const data = await r.json();
   if (!data?.item || !data.is_playing) { setPlayHeading(false); return; }
 
-  // Evaluate motif on the current track (single, correct call)
   applyMotifFromNowPlayingItem(data.item);
 
   const id = data.item.id;
@@ -188,10 +318,8 @@ async function poll() {
 function showToast({ title, artists, art }) {
   lastToastData = { title, artists, art };
 
-  // Keep idle overlay in sync with latest track
   updateIdleOverlayFromTrack(title, artists, art);
 
-  // Motif evaluation for toast (build a minimal item)
   applyMotifFromNowPlayingItem({
     name: title,
     artists: (artists || "").split(", ").map(n => ({ name: n }))
@@ -220,7 +348,6 @@ function showToast({ title, artists, art }) {
 function forceShowToast(data) {
   if (!data) return;
 
-  // Keep idle overlay in sync on hover-recall
   updateIdleOverlayFromTrack(data.title, data.artists, data.art || "");
 
   titleEl.textContent = data.title;
@@ -228,7 +355,6 @@ function forceShowToast(data) {
   imgEl.src = data.art || "";
   updateBackground(data.art);
 
-  // Motif evaluation on hover-recall
   applyMotifFromNowPlayingItem({
     name: data.title,
     artists: (data.artists || "").split(", ").map(n => ({ name:n }))
@@ -280,7 +406,6 @@ async function spotifyControl(endpoint, method = "POST", query = "") {
 
 async function restartTrack()     { return spotifyControl("seek", "PUT", "?position_ms=0"); }
 async function nextTrack()        { return spotifyControl("next", "POST"); }
-
 async function togglePlayPause() {
   const token = await getAccessToken();
   if (!token) return false;
@@ -311,6 +436,9 @@ const SCOPES = [
 
 const connectBtn = el("spotify-connect");
 connectBtn?.addEventListener("click", async () => {
+  // hide ambient immediately (polish)
+  ambient.setVisible(false);
+
   const verifier  = base64url(crypto.getRandomValues(new Uint8Array(64)));
   const challenge = await pkceChallenge(verifier);
   sessionStorage.setItem("pkce_verifier", verifier);
@@ -339,7 +467,14 @@ async function pkceChallenge(verifier) {
 // === On-load init: if connected & playing, show toast immediately ===
 async function initSpotifyOnLoad() {
   const token = await getAccessToken();
-  if (!token) return;
+
+  // show/hide ambient based on connection state
+  if (!token) {
+    ambient.setVisible(true);
+    return; // nothing else to do (no Spotify yet)
+  } else {
+    ambient.setVisible(false);
+  }
 
   const btn = el('spotify-connect');
   if (btn) {
@@ -357,17 +492,14 @@ async function initSpotifyOnLoad() {
 
     const data = await r.json();
     if (data?.item && data.is_playing) {
-      // Set motif immediately on load
       applyMotifFromNowPlayingItem(data.item);
 
-      // Idle overlay: seed with current track
       updateIdleOverlayFromTrack(
         data.item.name,
         data.item.artists.map(a => a.name).join(", "),
         data.item.album.images?.[0]?.url || ""
       );
 
-      // Prevent double-toast on first poll
       lastTrackId = data.item.id;
 
       showToast({
@@ -427,6 +559,8 @@ function spinNameOnce(target, finalText) {
    DOM Ready
 -------------------------------- */
 window.addEventListener('DOMContentLoaded', () => {
+  ambient.init();          // 🌊 init ambient music toggle
+
   initSpotifyOnLoad();
   const isGold = Math.floor(Math.random() * 50) === 0;
   setGoldState(isGold);
