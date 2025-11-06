@@ -13,7 +13,7 @@
 
       // Use the exact same redirect URI as the authorize step
       const SAVED_REDIRECT = sessionStorage.getItem("sp_redirect_uri");
-      const REDIRECT_URI = SAVED_REDIRECT || "https://github.com/uiohjo/uiohjio-s-g-a-m-e-s/callback/"; // pathname ends with /callback/
+      const REDIRECT_URI = SAVED_REDIRECT || "https://uiohjo.github.io/uiohjio-s-g-a-m-e-s/"; // pathname ends with /callback/
 
       async function exchange() {
         const body = new URLSearchParams({
