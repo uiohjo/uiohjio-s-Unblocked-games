@@ -170,7 +170,7 @@ const idleTitle   = el('idle-title');
 const idleArtist  = el('idle-artist');
 
 let idleTimer = null;
-const IDLE_TIMEOUT_MS = 120000; // 2 minutes
+const IDLE_TIMEOUT_MS = 60000;
 
 function updateIdleOverlayFromTrack(title, artistsCsv, artUrl) {
   if (idleTitle)  idleTitle.textContent  = title || 'Nothing playing';
