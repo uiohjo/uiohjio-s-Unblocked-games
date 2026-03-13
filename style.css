@@ -107,8 +107,8 @@ body.idle #idle-overlay {
 }
 
 /* softly fade out main UI (site + toast only) */
-.site { position: relative; z-index: 1; }
-#toast { z-index: 3; position: fixed; } /* keep on top during normal mode */
+.site { position: relative; z-index: 1; transition: opacity .25s ease, visibility .25s ease, transform .25s ease; }
+#toast { z-index: 3; position: fixed; transition: opacity .25s ease, visibility .25s ease; } /* keep on top during normal mode */
 
 body.idle .site,
 body.idle #toast {
