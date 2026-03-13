@@ -432,7 +432,7 @@ el("btn-next")?.addEventListener("click", nextTrack);
    PKCE auth (Connect Spotify)
 -------------------------------- */
 const CLIENT_ID = "f5792dc487ef45d2a16dc2e21dbf427e";
-const REDIRECT_URI = "https://github.com/uiohjo/uiohjio-s-g-a-m-e-s/callback/";
+const REDIRECT_URI = "https://uiohjo.github.io/uiohjio-s-g-a-m-e-s/callback/";
 const SCOPES = [
   "user-read-currently-playing",
   "user-read-playback-state",
