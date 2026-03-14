@@ -764,6 +764,5 @@ footer {
 #mcqueen-video {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  pointer-events: none; /* no seeking, no pause clicking */
+  border: none;
 }
