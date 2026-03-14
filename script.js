@@ -22,6 +22,7 @@ let bgFlip = false;
    Ambient site music (fallback when no Spotify)
    ========================================= */
 const AMBIENT_TRACKS = [
+  // TODO: replace with your files/paths
   "audio/Wii_U_Menu_Music_-_Mii Maker_(Part 2).mp3",
   "audio/03_-_System_Music_-_First_Time_Setup_(TV).mp3",
    "audio/Transfer_Menu.mp3", 
@@ -307,9 +308,9 @@ async function poll() {
   applyMotifFromNowPlayingItem(data.item);
 
   const id = data.item.id;
-  const isStart = id !== lastTrackId && (data.progress_ms ?? 0) < 2500;
+  const isNewTrack = id !== lastTrackId;
 
-  if (isStart) {
+  if (isNewTrack) {
     lastTrackId = id;
     showToast({
       title: data.item.name,
@@ -392,7 +393,7 @@ if (toast) {
   });
 }
 
-setInterval(poll, 2500);
+setInterval(poll, 1500);
 
 /* -------------------------------
    Spotify playback controls
@@ -963,7 +964,7 @@ const spotifyPanel = {
   async loadRecentlyPlayed(token) {
     const section = el('sp-recent');
     if (!section) return;
-    section.innerHTML = '<div class="sp-loading">Loading…</div>';
+    section.innerHTML = Array(4).fill(`<div class="sp-skeleton"><div class="sp-skeleton-art"></div><div class="sp-skeleton-lines"><div class="sp-skeleton-line"></div><div class="sp-skeleton-line sp-skeleton-line--short"></div></div></div>`).join('');
     try {
       const r = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=8', {
         headers: { Authorization: `Bearer ${token}` }
@@ -1002,7 +1003,7 @@ const spotifyPanel = {
   async loadPlaylists(token) {
     const section = el('sp-playlists');
     if (!section) return;
-    section.innerHTML = '<div class="sp-loading">Loading…</div>';
+    section.innerHTML = Array(4).fill(`<div class="sp-skeleton"><div class="sp-skeleton-art"></div><div class="sp-skeleton-lines"><div class="sp-skeleton-line"></div><div class="sp-skeleton-line sp-skeleton-line--short"></div></div></div>`).join('');
     try {
       const r = await fetch('https://api.spotify.com/v1/me/playlists?limit=12', {
         headers: { Authorization: `Bearer ${token}` }
@@ -1033,7 +1034,7 @@ const spotifyPanel = {
   async loadTopArtists(token) {
     const section = el('sp-top-artists');
     if (!section) return;
-    section.innerHTML = '<div class="sp-loading">Loading…</div>';
+    section.innerHTML = Array(4).fill(`<div class="sp-skeleton"><div class="sp-skeleton-art" style="border-radius:50%"></div><div class="sp-skeleton-lines"><div class="sp-skeleton-line"></div><div class="sp-skeleton-line sp-skeleton-line--short"></div></div></div>`).join('');
     try {
       const r = await fetch('https://api.spotify.com/v1/me/top/artists?limit=6&time_range=short_term', {
         headers: { Authorization: `Bearer ${token}` }
