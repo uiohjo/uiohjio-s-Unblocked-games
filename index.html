@@ -125,6 +125,7 @@
 <button id="ambient-toggle" aria-pressed="false" hidden>
   Site Music
 </button>
+<button id="sp-panel-open" aria-label="Open Spotify panel">🎵 Spotify</button>
 </div>
     </header>
 
@@ -167,5 +168,40 @@
     <div id="idle-artist">—</div>
   </div>
 </div>
+<!-- Spotify sidebar panel -->
+<div id="sp-panel-backdrop"></div>
+
+<div id="sp-panel" role="dialog" aria-label="Spotify Panel" aria-hidden="true">
+  <div class="sp-header">
+    <div class="sp-header-title">
+      <div class="sp-header-logo">♪</div>
+      Spotify
+    </div>
+    <button id="sp-panel-close" aria-label="Close Spotify panel">✕</button>
+  </div>
+
+  <div class="sp-body">
+    <div class="sp-section">
+      <div class="sp-section-label">Now Playing</div>
+      <div id="sp-now-playing"><p class="sp-empty">Nothing playing right now.</p></div>
+    </div>
+    <div class="sp-divider"></div>
+    <div class="sp-section">
+      <div class="sp-section-label">Recently Played</div>
+      <div id="sp-recent"><div class="sp-loading">Loading…</div></div>
+    </div>
+    <div class="sp-divider"></div>
+    <div class="sp-section">
+      <div class="sp-section-label">Your Playlists</div>
+      <div id="sp-playlists"><div class="sp-loading">Loading…</div></div>
+    </div>
+    <div class="sp-divider"></div>
+    <div class="sp-section">
+      <div class="sp-section-label">Top Artists · 4 Weeks</div>
+      <div id="sp-top-artists"><div class="sp-loading">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
