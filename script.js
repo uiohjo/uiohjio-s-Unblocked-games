@@ -22,7 +22,6 @@ let bgFlip = false;
    Ambient site music (fallback when no Spotify)
    ========================================= */
 const AMBIENT_TRACKS = [
-  // TODO: replace with your files/paths
   "audio/Wii_U_Menu_Music_-_Mii Maker_(Part 2).mp3",
   "audio/03_-_System_Music_-_First_Time_Setup_(TV).mp3",
    "audio/Transfer_Menu.mp3", 
