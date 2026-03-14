@@ -631,16 +631,66 @@ async function loadCatalog() {
   }
 }
 
+/* ===== Favorites ===== */
+const FAV_KEY = "fav_games";
+function getFavs() {
+  try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || "[]")); }
+  catch { return new Set(); }
+}
+function saveFavs(set) {
+  localStorage.setItem(FAV_KEY, JSON.stringify([...set]));
+}
+function toggleFav(slug) {
+  const favs = getFavs();
+  favs.has(slug) ? favs.delete(slug) : favs.add(slug);
+  saveFavs(favs);
+  renderSidebar(currentSearchList());
+}
+function currentSearchList() {
+  const input = el("game-search");
+  const q = input?.value.toLowerCase().trim() || "";
+  return !q ? GAMES : GAMES.filter(g =>
+    g.title.toLowerCase().includes(q) ||
+    (g.tags || []).some(t => t.toLowerCase().includes(q))
+  );
+}
+
 function renderSidebar(list) {
   const ul = el("game-list");
   if (!ul) return;
   ul.innerHTML = "";
-  for (const g of list) {
+
+  const favs = getFavs();
+
+  const sorted = [...list].sort((a, b) => {
+    const af = favs.has(a.slug), bf = favs.has(b.slug);
+    if (af && !bf) return -1;
+    if (!af && bf) return 1;
+    return 0;
+  });
+
+  for (const g of sorted) {
+    const isFav = favs.has(g.slug);
     const li = document.createElement("li");
     li.role = "option";
     li.dataset.slug = g.slug;
-    li.textContent = g.title;
     if (currentGame && currentGame.slug === g.slug) li.setAttribute("aria-selected", "true");
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "sidebar-game-name";
+    nameSpan.textContent = g.title;
+
+    const starBtn = document.createElement("button");
+    starBtn.className = "fav-btn" + (isFav ? " fav-btn--on" : "");
+    starBtn.setAttribute("aria-label", isFav ? "Unfavorite" : "Favorite");
+    starBtn.textContent = isFav ? "\u2605" : "\u2606";
+    starBtn.addEventListener("click", e => {
+      e.stopPropagation();
+      toggleFav(g.slug);
+    });
+
+    li.appendChild(nameSpan);
+    li.appendChild(starBtn);
     li.addEventListener("click", () => selectGame(g.slug));
     ul.appendChild(li);
   }
@@ -691,12 +741,94 @@ function wireSearch() {
   if (!input) return;
   input.addEventListener("input", () => {
     const q = input.value.toLowerCase().trim();
-    const list = !q ? GAMES : GAMES.filter(g =>
-      g.title.toLowerCase().includes(q) ||
-      (g.tags || []).some(t => t.toLowerCase().includes(q))
-    );
-    renderSidebar(list);
+    if (q === "mejiro mcqueen") {
+      input.value = "";
+      renderSidebar(currentSearchList());
+      triggerMcQueenCurse();
+      return;
+    }
+    renderSidebar(currentSearchList());
   });
+}
+
+/* ============================================================
+   MEJIRO MCQUEEN CURSE — You searched for this. You did this.
+   ============================================================ */
+function triggerMcQueenCurse() {
+  const overlay = el("mcqueen-overlay");
+  const loader  = el("mcqueen-loader");
+  const videoWrap = el("mcqueen-video-wrap");
+  const video   = el("mcqueen-video");
+  if (!overlay || !video) return;
+
+  // Handlers we'll need to remove later
+  const killKey     = e => {
+    const blocked = ["Escape","F11","F12"];
+    const devTools = (e.ctrlKey || e.metaKey) && e.shiftKey && ["I","J","C","U"].includes(e.key.toUpperCase());
+    const ctrlU    = (e.ctrlKey || e.metaKey) && e.key.toUpperCase() === "U";
+    if (blocked.includes(e.key) || devTools || ctrlU) {
+      e.preventDefault(); e.stopImmediatePropagation();
+    }
+  };
+  const killContext = e => e.preventDefault();
+  const reFullscreen = () => {
+    if (!document.fullscreenElement && overlay.style.display !== "none") {
+      overlay.requestFullscreen().catch(() => {});
+    }
+  };
+
+  // Show overlay
+  overlay.style.display = "flex";
+  loader.style.display  = "flex";
+  videoWrap.style.display = "none";
+
+  // Lock everything down
+  document.addEventListener("keydown",       killKey,     true);
+  document.addEventListener("contextmenu",   killContext, true);
+  document.addEventListener("fullscreenchange", reFullscreen);
+
+  // Fake loading screen — fills for ~4 seconds, then boom
+  const bar = el("mcqueen-bar");
+  const statusText = el("mcqueen-status");
+  const fakeSteps = [
+    [300,  5,  "Initializing search index..."],
+    [700,  20, "Fetching game catalog..."],
+    [500,  38, "Resolving query..."],
+    [600,  55, "Cross-referencing database..."],
+    [400,  72, "Almost there..."],
+    [500,  89, "Loading results..."],
+    [600,  100,"Done!"],
+  ];
+  let stepIdx = 0;
+  function runStep() {
+    if (stepIdx >= fakeSteps.length) {
+      // Switch to video
+      setTimeout(() => {
+        loader.style.display    = "none";
+        videoWrap.style.display = "flex";
+        overlay.requestFullscreen().catch(() => {});
+        video.play().catch(() => {});
+      }, 300);
+      return;
+    }
+    const [delay, pct, msg] = fakeSteps[stepIdx++];
+    setTimeout(() => {
+      bar.style.width    = pct + "%";
+      statusText.textContent = msg;
+      runStep();
+    }, delay);
+  }
+  runStep();
+
+  // Cleanup after video ends
+  video.addEventListener("ended", () => {
+    document.removeEventListener("keydown",         killKey,     true);
+    document.removeEventListener("contextmenu",     killContext, true);
+    document.removeEventListener("fullscreenchange",reFullscreen);
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    overlay.style.display = "none";
+    video.currentTime = 0;
+  }, { once: true });
 }
 
 /* Open-blank -> current HTML game if available */
