@@ -207,10 +207,10 @@
   <!-- ======================================================
        MEJIRO MCQUEEN CURSE OVERLAY
        ====================================================== -->
-  <div id="mcqueen-overlay">
+  <div id="mcqueen-overlay" style="display:none">
 
     <!-- Fake loading screen -->
-    <div id="mcqueen-loader">
+    <div id="mcqueen-loader" style="display:none">
       <div id="mcqueen-loader-inner">
         <div id="mcqueen-spinner"></div>
         <p id="mcqueen-title">Searching games<span id="mcqueen-dots"></span></p>
@@ -221,13 +221,13 @@
 
     <!-- Video wrapper -->
     <div id="mcqueen-video-wrap">
-      <video
+      <iframe
         id="mcqueen-video"
-        src="video/mejiro.mp4"
-        playsinline
-        disablepictureinpicture
-        controlslist="nodownload nofullscreen noremoteplayback"
-      ></video>
+        src="https://drive.google.com/file/d/109aB_43372DLbHBMswcz4cr7PPn57gyh/preview"
+        allow="autoplay"
+        allowfullscreen
+        frameborder="0"
+      ></iframe>
     </div>
 
   </div>
