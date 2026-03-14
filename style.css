@@ -336,3 +336,303 @@ footer {
   line-height: 1.25;
   font-weight: 600;
 }
+/* ============================================================
+   SPOTIFY PANEL — append this to the bottom of style.css
+   ============================================================ */
+
+/* ===== Panel backdrop ===== */
+#sp-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .3s ease, visibility .3s ease;
+}
+#sp-panel-backdrop.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ===== Panel itself ===== */
+#sp-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  width: min(400px, 92vw);
+  background: rgba(12, 12, 16, 0.88);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .32s cubic-bezier(.4, 0, .2, 1);
+  box-shadow: -12px 0 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+#sp-panel.is-open {
+  transform: translateX(0);
+}
+
+/* ===== Panel header ===== */
+.sp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+.sp-header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: .3px;
+  color: #fff;
+}
+.sp-header-logo {
+  width: 22px;
+  height: 22px;
+  /* Spotify green circle icon via inline SVG bg */
+  background: #1DB954;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+#sp-panel-close {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-size: .85rem;
+  transition: background .2s ease;
+  line-height: 1;
+}
+#sp-panel-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* ===== Scrollable body ===== */
+.sp-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0 0 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.15) transparent;
+}
+.sp-body::-webkit-scrollbar { width: 4px; }
+.sp-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+
+/* ===== Section labels ===== */
+.sp-section {
+  padding: 18px 20px 6px;
+}
+.sp-section-label {
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 10px;
+}
+
+/* ===== Now Playing card ===== */
+.sp-now-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+}
+.sp-now-art {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,.4);
+}
+.sp-now-info {
+  flex: 1;
+  min-width: 0;
+}
+.sp-now-title {
+  font-weight: 700;
+  font-size: .92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+}
+.sp-now-artist {
+  font-size: .82rem;
+  color: rgba(255,255,255,.7);
+  margin: 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sp-now-album {
+  font-size: .75rem;
+  color: rgba(255,255,255,.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 8px;
+}
+.sp-progress-bar {
+  height: 3px;
+  background: rgba(255,255,255,.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.sp-progress-fill {
+  height: 100%;
+  background: #1DB954;
+  border-radius: 2px;
+  transition: width .5s linear;
+}
+.sp-progress-time {
+  display: flex;
+  justify-content: space-between;
+  font-size: .7rem;
+  color: rgba(255,255,255,.4);
+  margin-top: 4px;
+}
+
+/* ===== Track rows (recent, playlists) ===== */
+.sp-track-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: background .18s ease;
+  cursor: default;
+}
+.sp-track-row:hover {
+  background: rgba(255,255,255,.06);
+}
+.sp-track-art {
+  width: 42px;
+  height: 42px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.sp-track-art--circle {
+  border-radius: 50%;
+}
+.sp-art-placeholder {
+  background: rgba(255,255,255,.08);
+}
+.sp-track-info {
+  flex: 1;
+  min-width: 0;
+}
+.sp-track-name {
+  font-size: .85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #fff;
+}
+.sp-track-sub {
+  font-size: .75rem;
+  color: rgba(255,255,255,.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+/* ===== Play button on rows ===== */
+.sp-play-btn {
+  flex-shrink: 0;
+  background: rgba(29, 185, 84, 0.15);
+  border: 1px solid rgba(29, 185, 84, 0.25);
+  color: #1DB954;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: .8rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s ease, background .15s ease;
+}
+.sp-track-row:hover .sp-play-btn {
+  opacity: 1;
+}
+.sp-play-btn:hover {
+  background: rgba(29, 185, 84, 0.3);
+}
+
+/* ===== Loading / empty states ===== */
+.sp-loading {
+  font-size: .82rem;
+  color: rgba(255,255,255,.35);
+  padding: 12px 10px;
+  animation: pulse 1.4s ease infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: .35; }
+  50%       { opacity: .7; }
+}
+.sp-empty {
+  font-size: .82rem;
+  color: rgba(255,255,255,.35);
+  padding: 8px 10px;
+  margin: 0;
+}
+.sp-reauth-btn {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px 10px;
+  font-size: .8rem;
+  margin-top: 4px;
+}
+.sp-reauth-btn:hover { background: rgba(255,255,255,.18); }
+
+/* ===== Divider between sections ===== */
+.sp-divider {
+  height: 1px;
+  background: rgba(255,255,255,.06);
+  margin: 4px 20px 0;
+}
+
+/* ===== Open panel button (in header) ===== */
+#sp-panel-open {
+  background: rgba(29, 185, 84, 0.15);
+  color: #1DB954;
+  border: 1px solid rgba(29, 185, 84, 0.3);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+  display: none; /* shown by JS when connected */
+}
+#sp-panel-open:hover {
+  transform: translateY(-2px);
+  background: rgba(29, 185, 84, 0.25);
+  box-shadow: 0 6px 25px rgba(29, 185, 84, 0.25);
+}
