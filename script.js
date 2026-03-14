@@ -436,7 +436,11 @@ const REDIRECT_URI = "https://uiohjo.github.io/uiohjio-s-g-a-m-e-s/callback/";
 const SCOPES = [
   "user-read-currently-playing",
   "user-read-playback-state",
-  "user-modify-playback-state"
+  "user-modify-playback-state",
+  "user-read-recently-played",
+  "user-top-read",
+  "playlist-read-private",
+  "playlist-read-collaborative"
 ].join(" ");
 
 const connectBtn = el("spotify-connect");
@@ -488,6 +492,9 @@ async function initSpotifyOnLoad() {
     btn.style.opacity = '0.85';
     btn.style.cursor = 'default';
   }
+
+  const panelBtn = el('sp-panel-open');
+  if (panelBtn) panelBtn.style.display = '';
 
   try {
     const r = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
@@ -721,4 +728,244 @@ function wireSearch() {
 window.addEventListener("DOMContentLoaded", () => {
   wireSearch();
   loadCatalog();
+});
+/* ============================================================
+   SPOTIFY PANEL — append this to the bottom of script.js
+   Also update your SCOPES constant (around line 436) to:
+
+   const SCOPES = [
+     "user-read-currently-playing",
+     "user-read-playback-state",
+     "user-modify-playback-state",
+     "user-read-recently-played",
+     "user-top-read",
+     "playlist-read-private",
+     "playlist-read-collaborative"
+   ].join(" ");
+
+   Users who already connected will need to hit "Reconnect Spotify"
+   once to grant the new scopes.
+   ============================================================ */
+
+/* -------------------------------
+   Spotify Panel
+-------------------------------- */
+const spotifyPanel = {
+  isOpen: false,
+  loaded: false,
+
+  async open() {
+    const panel    = el('sp-panel');
+    const backdrop = el('sp-panel-backdrop');
+    if (!panel) return;
+    panel.classList.add('is-open');
+    backdrop?.classList.add('is-visible');
+    panel.setAttribute('aria-hidden', 'false');
+    this.isOpen = true;
+    if (!this.loaded) await this.loadAll();
+    else await this.loadNowPlaying(await getAccessToken()); // refresh NP on re-open
+  },
+
+  close() {
+    const panel    = el('sp-panel');
+    const backdrop = el('sp-panel-backdrop');
+    panel?.classList.remove('is-open');
+    backdrop?.classList.remove('is-visible');
+    panel?.setAttribute('aria-hidden', 'true');
+    this.isOpen = false;
+  },
+
+  async loadAll() {
+    this.loaded = true;
+    const token = await getAccessToken();
+    if (!token) {
+      ['sp-now-playing','sp-recent','sp-playlists','sp-top-artists'].forEach(id => {
+        const s = el(id); if (s) s.innerHTML = '<p class="sp-empty">Not connected to Spotify.</p>';
+      });
+      return;
+    }
+    await Promise.allSettled([
+      this.loadNowPlaying(token),
+      this.loadRecentlyPlayed(token),
+      this.loadPlaylists(token),
+      this.loadTopArtists(token),
+    ]);
+  },
+
+  async loadNowPlaying(token) {
+    const section = el('sp-now-playing');
+    if (!section || !token) return;
+    try {
+      const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (r.status === 204 || !r.ok) {
+        section.innerHTML = '<p class="sp-empty">Nothing playing right now.</p>';
+        return;
+      }
+      const data = await r.json();
+      if (!data?.item) { section.innerHTML = '<p class="sp-empty">Nothing playing right now.</p>'; return; }
+
+      const item     = data.item;
+      const art      = item.album.images?.[1]?.url || item.album.images?.[0]?.url || '';
+      const progress = data.progress_ms || 0;
+      const duration = item.duration_ms || 1;
+      const pct      = Math.round((progress / duration) * 100);
+      const fmt      = ms => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`;
+
+      section.innerHTML = `
+        <div class="sp-now-card">
+          <img class="sp-now-art" src="${art}" alt="${escHtml(item.name)}" />
+          <div class="sp-now-info">
+            <div class="sp-now-title">${escHtml(item.name)}</div>
+            <div class="sp-now-artist">${escHtml(item.artists.map(a => a.name).join(', '))}</div>
+            <div class="sp-now-album">${escHtml(item.album.name)}</div>
+            <div class="sp-progress-bar"><div class="sp-progress-fill" style="width:${pct}%"></div></div>
+            <div class="sp-progress-time"><span>${fmt(progress)}</span><span>${fmt(duration)}</span></div>
+          </div>
+        </div>`;
+    } catch {
+      section.innerHTML = '<p class="sp-empty">Could not load.</p>';
+    }
+  },
+
+  async loadRecentlyPlayed(token) {
+    const section = el('sp-recent');
+    if (!section) return;
+    section.innerHTML = '<div class="sp-loading">Loading…</div>';
+    try {
+      const r = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=8', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!r.ok) { this.handleScopeError(r, section, 'recently played'); return; }
+      const data = await r.json();
+
+      // dedupe by track id
+      const seen = new Set();
+      const tracks = data.items.filter(i => {
+        if (seen.has(i.track.id)) return false;
+        seen.add(i.track.id); return true;
+      });
+
+      section.innerHTML = tracks.map(i => {
+        const t   = i.track;
+        const art = t.album.images?.[2]?.url || t.album.images?.[0]?.url || '';
+        return `<div class="sp-track-row">
+          ${art ? `<img class="sp-track-art" src="${art}" alt="" />` : '<div class="sp-track-art sp-art-placeholder"></div>'}
+          <div class="sp-track-info">
+            <div class="sp-track-name">${escHtml(t.name)}</div>
+            <div class="sp-track-sub">${escHtml(t.artists.map(a => a.name).join(', '))}</div>
+          </div>
+          <button class="sp-play-btn" data-uri="${t.uri}" aria-label="Play ${escHtml(t.name)}">▶</button>
+        </div>`;
+      }).join('');
+
+      section.querySelectorAll('.sp-play-btn').forEach(btn =>
+        btn.addEventListener('click', e => { e.stopPropagation(); this.playUri(btn.dataset.uri); })
+      );
+    } catch {
+      section.innerHTML = '<p class="sp-empty">Could not load.</p>';
+    }
+  },
+
+  async loadPlaylists(token) {
+    const section = el('sp-playlists');
+    if (!section) return;
+    section.innerHTML = '<div class="sp-loading">Loading…</div>';
+    try {
+      const r = await fetch('https://api.spotify.com/v1/me/playlists?limit=12', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!r.ok) { this.handleScopeError(r, section, 'playlists'); return; }
+      const data = await r.json();
+
+      section.innerHTML = data.items.map(p => {
+        const art = p.images?.[0]?.url || '';
+        return `<div class="sp-track-row">
+          ${art ? `<img class="sp-track-art" src="${art}" alt="" />` : '<div class="sp-track-art sp-art-placeholder"></div>'}
+          <div class="sp-track-info">
+            <div class="sp-track-name">${escHtml(p.name)}</div>
+            <div class="sp-track-sub">${p.tracks.total} tracks</div>
+          </div>
+          <button class="sp-play-btn" data-context="${p.uri}" aria-label="Play ${escHtml(p.name)}">▶</button>
+        </div>`;
+      }).join('');
+
+      section.querySelectorAll('.sp-play-btn').forEach(btn =>
+        btn.addEventListener('click', e => { e.stopPropagation(); this.playUri(null, btn.dataset.context); })
+      );
+    } catch {
+      section.innerHTML = '<p class="sp-empty">Could not load.</p>';
+    }
+  },
+
+  async loadTopArtists(token) {
+    const section = el('sp-top-artists');
+    if (!section) return;
+    section.innerHTML = '<div class="sp-loading">Loading…</div>';
+    try {
+      const r = await fetch('https://api.spotify.com/v1/me/top/artists?limit=6&time_range=short_term', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!r.ok) { this.handleScopeError(r, section, 'top artists'); return; }
+      const data = await r.json();
+
+      section.innerHTML = data.items.map(a => {
+        const art = a.images?.[2]?.url || a.images?.[0]?.url || '';
+        return `<div class="sp-track-row sp-track-row--no-btn">
+          ${art ? `<img class="sp-track-art sp-track-art--circle" src="${art}" alt="" />` : '<div class="sp-track-art sp-track-art--circle sp-art-placeholder"></div>'}
+          <div class="sp-track-info">
+            <div class="sp-track-name">${escHtml(a.name)}</div>
+            <div class="sp-track-sub">${escHtml(a.genres.slice(0, 2).join(', ') || 'Artist')}</div>
+          </div>
+        </div>`;
+      }).join('');
+    } catch {
+      section.innerHTML = '<p class="sp-empty">Could not load.</p>';
+    }
+  },
+
+  async playUri(trackUri, contextUri) {
+    const token = await getAccessToken();
+    if (!token) return;
+    const body = contextUri ? { context_uri: contextUri } : { uris: [trackUri] };
+    const r = await fetch('https://api.spotify.com/v1/me/player/play', {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (r.status === 403) alert('Spotify Premium is required to control playback remotely.');
+    if (r.status === 404) alert('No active Spotify device found. Open Spotify on any device first.');
+  },
+
+  handleScopeError(r, section, label) {
+    if (r.status === 401 || r.status === 403) {
+      section.innerHTML = `<p class="sp-empty">
+        New permissions needed for ${label}.<br/>
+        <button class="sp-reauth-btn" id="sp-reauth-${label.replace(/\s/g,'-')}">Reconnect Spotify</button>
+      </p>`;
+      section.querySelector('.sp-reauth-btn')?.addEventListener('click', () => {
+        ['sp_access_token','sp_refresh_token','sp_expires_at'].forEach(k => localStorage.removeItem(k));
+        el('spotify-connect')?.click();
+      });
+    } else {
+      section.innerHTML = `<p class="sp-empty">Could not load ${label}.</p>`;
+    }
+  }
+};
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* Wire up panel open/close */
+window.addEventListener('DOMContentLoaded', () => {
+  el('sp-panel-open')?.addEventListener('click', () => spotifyPanel.open());
+  el('sp-panel-close')?.addEventListener('click', () => spotifyPanel.close());
+  el('sp-panel-backdrop')?.addEventListener('click', () => spotifyPanel.close());
+
+  // Close on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && spotifyPanel.isOpen) spotifyPanel.close();
+  });
 });
