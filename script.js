@@ -494,7 +494,7 @@ async function initSpotifyOnLoad() {
   }
 
   const panelBtn = el('sp-panel-open');
-  if (panelBtn) panelBtn.style.display = '';
+  if (panelBtn) panelBtn.style.display = 'block';
 
   try {
     const r = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
