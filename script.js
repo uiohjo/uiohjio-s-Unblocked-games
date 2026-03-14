@@ -807,7 +807,16 @@ function triggerMcQueenCurse() {
         loader.style.display    = "none";
         videoWrap.style.display = "flex";
         overlay.requestFullscreen().catch(() => {});
-        video.play().catch(() => {});
+        // iframe autoplays via Google Drive preview — no .play() needed
+
+        // Clean up after 11:04 (664 seconds)
+        setTimeout(() => {
+          document.removeEventListener("keydown",          killKey,      true);
+          document.removeEventListener("contextmenu",      killContext,  true);
+          document.removeEventListener("fullscreenchange", reFullscreen);
+          if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+          overlay.style.display = "none";
+        }, 664000);
       }, 300);
       return;
     }
@@ -820,15 +829,6 @@ function triggerMcQueenCurse() {
   }
   runStep();
 
-  // Cleanup after video ends
-  video.addEventListener("ended", () => {
-    document.removeEventListener("keydown",         killKey,     true);
-    document.removeEventListener("contextmenu",     killContext, true);
-    document.removeEventListener("fullscreenchange",reFullscreen);
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    overlay.style.display = "none";
-    video.currentTime = 0;
-  }, { once: true });
 }
 
 /* Open-blank -> current HTML game if available */
