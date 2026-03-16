@@ -2251,3 +2251,194 @@ footer {
     padding: 16px 0 40px;
   }
 }
+
+
+/* ============================================================
+   DANCE DELIGHTFUL MODE
+   ============================================================ */
+
+#dd-canvas {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+/* Chromatic aberration — bright, fast, celebratory */
+body.dance-delightful .site {
+  animation: dd-chroma 0.08s steps(1) infinite;
+}
+
+@keyframes dd-chroma {
+  0%   { filter: drop-shadow(-2px 0 0 rgba(255,0,100,.4))  drop-shadow(2px 0 0 rgba(0,220,255,.4)); }
+  25%  { filter: drop-shadow(3px 0 0 rgba(255,220,0,.35))  drop-shadow(-3px 0 0 rgba(0,255,140,.35)); }
+  50%  { filter: drop-shadow(-2px 0 0 rgba(120,0,255,.4))  drop-shadow(2px 0 0 rgba(255,40,180,.4)); }
+  75%  { filter: drop-shadow(2px 0 0 rgba(255,80,0,.35))   drop-shadow(-2px 0 0 rgba(0,200,255,.35)); }
+  100% { filter: drop-shadow(-3px 0 0 rgba(255,0,100,.4))  drop-shadow(3px 0 0 rgba(0,255,200,.4)); }
+}
+
+/* Title — big bouncy celebration */
+body.dance-delightful .title {
+  animation:
+    dd-title-bounce 0.28s cubic-bezier(.22,.68,0,1.8) infinite alternate,
+    dd-title-color  0.4s steps(1) infinite !important;
+  display: inline-block;
+  transform-origin: center bottom;
+}
+
+@keyframes dd-title-bounce {
+  from { transform: translateY(0)    rotate(-1.5deg) scale(1); }
+  to   { transform: translateY(-14px) rotate(1.5deg) scale(1.06); }
+}
+
+@keyframes dd-title-color {
+  0%   { color: #fff; }
+  20%  { color: #ff28b4; }
+  40%  { color: #ffe600; }
+  60%  { color: #00e5ff; }
+  80%  { color: #c0ff00; }
+  100% { color: #fff; }
+}
+
+/* Cards — bouncy, NOT jittery */
+body.dance-delightful .card {
+  animation: dd-card-bounce 0.5s cubic-bezier(.22,.68,0,1.6) infinite alternate !important;
+  transform-origin: center;
+}
+body.dance-delightful .card:nth-child(2) { animation-delay: .1s !important; }
+body.dance-delightful .card:nth-child(3) { animation-delay: .2s !important; }
+
+@keyframes dd-card-bounce {
+  from { transform: translateY(0) rotate(-.3deg) scale(1); }
+  to   { transform: translateY(-5px) rotate(.3deg) scale(1.01); }
+}
+
+/* Header buttons — pulse with color */
+body.dance-delightful header button {
+  animation: dd-btn-pulse 0.3s steps(1) infinite;
+}
+@keyframes dd-btn-pulse {
+  0%   { box-shadow: 0 0 0 0 transparent; }
+  33%  { box-shadow: 0 0 12px 2px rgba(255,40,180,.5); }
+  66%  { box-shadow: 0 0 12px 2px rgba(0,220,255,.5); }
+  100% { box-shadow: 0 0 12px 2px rgba(255,220,0,.5); }
+}
+
+/* Toast — bounces along with the energy */
+body.dance-delightful #toast {
+  animation: dd-toast-bounce 0.25s cubic-bezier(.22,.68,0,1.8) infinite alternate !important;
+}
+@keyframes dd-toast-bounce {
+  from { transform: translateY(0) rotate(-.5deg); }
+  to   { transform: translateY(-6px) rotate(.5deg); }
+}
+
+/* Background — full hue cycle, very saturated */
+body.dance-delightful .bg-layer {
+  animation: dd-hue 0.8s linear infinite !important;
+}
+@keyframes dd-hue {
+  from { filter: blur(60px) brightness(.6) saturate(3) hue-rotate(0deg); }
+  to   { filter: blur(60px) brightness(.6) saturate(3) hue-rotate(360deg); }
+}
+
+
+/* ============================================================
+   DANCE DELIGHTFUL — DEEP DIVE UPDATE
+   170bpm, F# major, "the apotheosis of a programmed thing"
+   ============================================================ */
+
+/* Chromatic aberration pulses at exactly 170bpm (~353ms) */
+body.dance-delightful .site {
+  animation: dd-chroma 0.353s steps(4) infinite;
+}
+
+@keyframes dd-chroma {
+  0%   { filter: drop-shadow(-4px 0 0 rgba(255,0,80,.55))  drop-shadow(4px 0 0 rgba(0,200,255,.55)); }
+  25%  { filter: drop-shadow(3px  0 0 rgba(255,20,180,.5)) drop-shadow(-3px 0 0 rgba(0,230,255,.5)); }
+  50%  { filter: drop-shadow(-5px 0 0 rgba(0,0,255,.5))    drop-shadow(5px 0 0 rgba(255,220,0,.5)); }
+  75%  { filter: drop-shadow(4px  0 0 rgba(255,0,80,.55))  drop-shadow(-4px 0 0 rgba(160,0,255,.5)); }
+}
+
+/* Title: bounce at 170bpm, cycle through self-descriptors */
+body.dance-delightful .title {
+  animation:
+    dd-title-bounce 0.353s cubic-bezier(.22,.68,0,1.5) infinite alternate,
+    dd-title-color  1.412s steps(4) infinite !important; /* 4 beats */
+  display: inline-block;
+  transform-origin: center bottom;
+}
+
+@keyframes dd-title-bounce {
+  from { transform: translateY(0)    scaleX(1)    rotate(-.5deg); }
+  to   { transform: translateY(-8px) scaleX(1.02) rotate(.8deg); }
+}
+
+@keyframes dd-title-color {
+  0%   { color: #fff; }
+  25%  { color: #ff14b4; } /* hot pink */
+  50%  { color: #00e6ff; } /* cyan */
+  75%  { color: #ffdc00; } /* yellow */
+}
+
+/* Cards: jitter in time with the beat */
+body.dance-delightful .card {
+  animation: dd-card-jitter 0.353s steps(4) infinite !important;
+}
+
+@keyframes dd-card-jitter {
+  0%   { transform: translate(0,    0)    rotate(0deg);  }
+  25%  { transform: translate(-2px, 1px) rotate(-.2deg); }
+  50%  { transform: translate(0,    -1px) rotate(0deg);  }
+  75%  { transform: translate(2px,  1px) rotate(.2deg);  }
+}
+
+/* Sidebar items: wave left-right like they're dancing */
+body.dance-delightful .sidebar__list li:nth-child(odd) {
+  animation: dd-sway-right 0.706s ease infinite alternate; /* 2 beats */
+}
+body.dance-delightful .sidebar__list li:nth-child(even) {
+  animation: dd-sway-left 0.706s ease infinite alternate;
+}
+
+@keyframes dd-sway-right {
+  from { transform: translateX(0)    skewX(0); }
+  to   { transform: translateX(3px)  skewX(1deg); }
+}
+@keyframes dd-sway-left {
+  from { transform: translateX(0)    skewX(0); }
+  to   { transform: translateX(-3px) skewX(-1deg); }
+}
+
+/* Background: full hue cycle at 170bpm × 8 beats = ~2.8s */
+body.dance-delightful .bg-layer {
+  animation: dd-hue-spin 2.824s linear infinite !important;
+  filter: blur(60px) brightness(.6) saturate(3) !important;
+}
+
+@keyframes dd-hue-spin {
+  from { filter: blur(60px) brightness(.6) saturate(3) hue-rotate(0deg); }
+  to   { filter: blur(60px) brightness(.6) saturate(3) hue-rotate(360deg); }
+}
+
+/* Toast bounces on beat */
+body.dance-delightful #toast {
+  animation: dd-toast-bounce 0.353s cubic-bezier(.22,.68,0,1.5) infinite alternate !important;
+}
+
+@keyframes dd-toast-bounce {
+  from { transform: translateY(0)   rotate(-.5deg); }
+  to   { transform: translateY(-5px) rotate(.5deg); }
+}
+
+/* Search input celebrates */
+body.dance-delightful .sidebar__search input {
+  animation: dd-input-glow 0.706s ease infinite alternate;
+}
+
+@keyframes dd-input-glow {
+  from { border-color: rgba(0,200,255,.3);  box-shadow: 0 0 8px rgba(0,200,255,.2); }
+  to   { border-color: rgba(255,20,180,.4); box-shadow: 0 0 16px rgba(255,20,180,.3); }
+}
