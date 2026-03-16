@@ -317,6 +317,7 @@ async function poll() {
       artists: data.item.artists.map(a => a.name).join(", "),
       art: data.item.album.images?.[0]?.url || ""
     });
+    if (typeof musicMode !== 'undefined' && musicMode.active) musicMode.refresh();
   }
 }
 
@@ -495,6 +496,9 @@ async function initSpotifyOnLoad() {
 
   const panelBtn = el('sp-panel-open');
   if (panelBtn) panelBtn.style.display = 'block';
+
+  const musicBtn = el('music-mode-btn');
+  if (musicBtn) musicBtn.style.display = 'block';
 
   try {
     const r = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
@@ -1100,4 +1104,286 @@ window.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && spotifyPanel.isOpen) spotifyPanel.close();
   });
+});
+
+
+/* ============================================================
+   MUSIC MODE
+   ============================================================ */
+const musicMode = {
+  active: false,
+  progressTimer: null,
+  currentState: null, // last fetched player state
+
+  // Elements
+  el: {
+    overlay:    () => el('music-overlay'),
+    art:        () => el('music-art'),
+    title:      () => el('music-title'),
+    artist:     () => el('music-artist'),
+    album:      () => el('music-album'),
+    fill:       () => el('music-progress-fill'),
+    timeCur:    () => el('music-time-cur'),
+    timeDur:    () => el('music-time-dur'),
+    playpause:  () => el('music-btn-playpause'),
+    queueList:  () => el('music-queue-list'),
+    btn:        () => el('music-mode-btn'),
+  },
+
+  fmt(ms) {
+    const s = Math.floor(ms / 1000);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  },
+
+  async open() {
+    const overlay = this.el.overlay();
+    if (!overlay) return;
+    this.active = true;
+    overlay.style.display = 'grid';
+    requestAnimationFrame(() => overlay.classList.add('is-visible', 'is-entering'));
+    document.body.style.overflow = 'hidden';
+    await this.refresh();
+    this.startProgress();
+  },
+
+  close() {
+    const overlay = this.el.overlay();
+    if (!overlay) return;
+    this.active = false;
+    overlay.classList.remove('is-visible', 'is-entering');
+    setTimeout(() => {
+      overlay.style.display = 'none';
+    }, 350);
+    document.body.style.overflow = '';
+    this.stopProgress();
+  },
+
+  async refresh() {
+    const token = await getAccessToken();
+    if (!token) return;
+    try {
+      const r = await fetch('https://api.spotify.com/v1/me/player', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!r.ok) return;
+      const data = await r.json();
+      this.currentState = data;
+      this.updateNowPlaying(data);
+      await this.loadQueue(token);
+    } catch {}
+  },
+
+  updateNowPlaying(data) {
+    if (!data?.item) return;
+    const item = data.item;
+    const art  = item.album?.images?.[0]?.url || '';
+
+    // Swap art with fade
+    const artEl = this.el.art();
+    if (artEl && artEl.src !== art) {
+      artEl.classList.add('swapping');
+      setTimeout(() => {
+        artEl.src = art;
+        artEl.onload = () => artEl.classList.remove('swapping');
+      }, 200);
+    }
+
+    // Background
+    this.el.overlay().style.setProperty('--music-art-url', `url("${art}")`);
+
+    this.el.title().textContent  = item.name || '';
+    this.el.artist().textContent = item.artists?.map(a => a.name).join(', ') || '';
+    this.el.album().textContent  = item.album?.name || '';
+
+    // Progress
+    const pct = ((data.progress_ms || 0) / (item.duration_ms || 1)) * 100;
+    this.el.fill().style.width    = pct + '%';
+    this.el.timeCur().textContent = this.fmt(data.progress_ms || 0);
+    this.el.timeDur().textContent = this.fmt(item.duration_ms || 0);
+
+    // Play/pause icon
+    this.el.playpause().textContent = data.is_playing ? '⏸' : '▶';
+
+    // Shuffle / repeat state
+    el('music-btn-shuffle')?.classList.toggle('music-btn--active', !!data.shuffle_state);
+    const repeatMap = { 'off': false, 'context': true, 'track': true };
+    el('music-btn-repeat')?.classList.toggle('music-btn--active', !!repeatMap[data.repeat_state]);
+  },
+
+  startProgress() {
+    this.stopProgress();
+    this.progressTimer = setInterval(async () => {
+      if (!this.active) return;
+      const token = await getAccessToken();
+      if (!token) return;
+      try {
+        const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (r.status === 204 || !r.ok) return;
+        const data = await r.json();
+        if (!data?.item) return;
+
+        // If track changed, do a full refresh (updates queue too)
+        if (data.item.id !== this.currentState?.item?.id) {
+          this.currentState = data;
+          await this.refresh();
+          return;
+        }
+
+        this.currentState = { ...this.currentState, ...data };
+        const pct = ((data.progress_ms || 0) / (data.item.duration_ms || 1)) * 100;
+        this.el.fill().style.width    = pct + '%';
+        this.el.timeCur().textContent = this.fmt(data.progress_ms || 0);
+        this.el.playpause().textContent = data.is_playing ? '⏸' : '▶';
+      } catch {}
+    }, 1500);
+  },
+
+  stopProgress() {
+    clearInterval(this.progressTimer);
+    this.progressTimer = null;
+  },
+
+  async loadQueue(token) {
+    const list = this.el.queueList();
+    if (!list) return;
+    try {
+      const r = await fetch('https://api.spotify.com/v1/me/player/queue', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!r.ok) { list.innerHTML = '<div class="music-queue-empty">Queue unavailable.</div>'; return; }
+      const data = await r.json();
+
+      const rows = [];
+
+      // Currently playing
+      if (data.currently_playing) {
+        const t = data.currently_playing;
+        const art = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
+        rows.push(`<div class="music-queue-row music-queue-row--current">
+          ${art ? `<img class="music-queue-art" src="${art}" alt="" />` : '<div class="music-queue-art" style="background:rgba(255,255,255,.08)"></div>'}
+          <div class="music-queue-info">
+            <div class="music-queue-name">${escHtml(t.name)}</div>
+            <div class="music-queue-sub">${escHtml(t.artists?.map(a=>a.name).join(', ') || '')}</div>
+          </div>
+          <div class="music-queue-dur">${this.fmt(t.duration_ms || 0)}</div>
+        </div>`);
+      }
+
+      // Upcoming
+      (data.queue || []).slice(0, 20).forEach(t => {
+        const art = t.album?.images?.[2]?.url || t.album?.images?.[0]?.url || '';
+        rows.push(`<div class="music-queue-row">
+          ${art ? `<img class="music-queue-art" src="${art}" alt="" />` : '<div class="music-queue-art" style="background:rgba(255,255,255,.08)"></div>'}
+          <div class="music-queue-info">
+            <div class="music-queue-name">${escHtml(t.name)}</div>
+            <div class="music-queue-sub">${escHtml(t.artists?.map(a=>a.name).join(', ') || '')}</div>
+          </div>
+          <div class="music-queue-dur">${this.fmt(t.duration_ms || 0)}</div>
+        </div>`);
+      });
+
+      list.innerHTML = rows.length ? rows.join('') : '<div class="music-queue-empty">Queue is empty.</div>';
+    } catch {
+      list.innerHTML = '<div class="music-queue-empty">Could not load queue.</div>';
+    }
+  },
+
+  async toggleShuffle() {
+    const token = await getAccessToken();
+    if (!token) return;
+    const current = !!this.currentState?.shuffle_state;
+    await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${!current}`, {
+      method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+    });
+    setTimeout(() => this.refresh(), 400);
+  },
+
+  async toggleRepeat() {
+    const token = await getAccessToken();
+    if (!token) return;
+    const current = this.currentState?.repeat_state || 'off';
+    const next = current === 'off' ? 'context' : current === 'context' ? 'track' : 'off';
+    await fetch(`https://api.spotify.com/v1/me/player/repeat?state=${next}`, {
+      method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+    });
+    setTimeout(() => this.refresh(), 400);
+  },
+
+  async prevTrack() {
+    const token = await getAccessToken();
+    if (!token) return;
+    await fetch('https://api.spotify.com/v1/me/player/previous', {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }
+    });
+    setTimeout(() => this.refresh(), 600);
+  },
+};
+
+/* Wire music mode buttons */
+window.addEventListener('DOMContentLoaded', () => {
+  // Show the button once Spotify is confirmed connected
+  // (initSpotifyOnLoad already handles this via sp-panel-open — mirror it)
+  const observer = new MutationObserver(() => {
+    const panelBtn = el('sp-panel-open');
+    if (panelBtn && panelBtn.style.display !== 'none') {
+      const mmBtn = el('music-mode-btn');
+      if (mmBtn) mmBtn.style.display = 'block';
+    }
+  });
+  const panelBtn = el('sp-panel-open');
+  if (panelBtn) observer.observe(panelBtn, { attributes: true, attributeFilter: ['style'] });
+
+  // If already connected on load, show immediately
+  getAccessToken().then(token => {
+    if (token) {
+      const mmBtn = el('music-mode-btn');
+      if (mmBtn) mmBtn.style.display = 'block';
+    }
+  });
+
+  el('music-mode-btn')?.addEventListener('click', () => musicMode.open());
+  el('music-exit')?.addEventListener('click',     () => musicMode.close());
+
+  // Controls
+  el('music-btn-playpause')?.addEventListener('click', async () => {
+    await togglePlayPause();
+    setTimeout(() => musicMode.refresh(), 400);
+  });
+  el('music-btn-next')?.addEventListener('click', async () => {
+    await nextTrack();
+    setTimeout(() => musicMode.refresh(), 600);
+  });
+  el('music-btn-prev')?.addEventListener('click',    () => musicMode.prevTrack());
+  el('music-btn-restart')?.addEventListener('click', async () => {
+    await restartTrack();
+    setTimeout(() => musicMode.refresh(), 400);
+  });
+  el('music-btn-shuffle')?.addEventListener('click', () => musicMode.toggleShuffle());
+  el('music-btn-repeat')?.addEventListener('click',  () => musicMode.toggleRepeat());
+
+  // Seek on progress bar click
+  el('music-progress-bar')?.addEventListener('click', async (e) => {
+    const dur = musicMode.currentState?.item?.duration_ms;
+    if (!dur) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct  = (e.clientX - rect.left) / rect.width;
+    const ms   = Math.round(pct * dur);
+    const token = await getAccessToken();
+    if (!token) return;
+    await fetch(`https://api.spotify.com/v1/me/player/seek?position_ms=${ms}`, {
+      method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+    });
+    setTimeout(() => musicMode.refresh(), 300);
+  });
+
+  // Escape key to exit
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && musicMode.active) musicMode.close();
+  });
+
+  // Keep music mode in sync when a new track is detected by the main poller
+  const _origShowToast = showToast;
+  window._musicModeTrackUpdate = () => { if (musicMode.active) musicMode.refresh(); };
 });
