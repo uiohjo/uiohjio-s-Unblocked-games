@@ -11,7 +11,7 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="style.css" />
   <style>
@@ -27,66 +27,15 @@
       will-change: opacity;
     }
     .bg-layer.hidden { opacity: 0; }
-
     @media (prefers-reduced-motion: reduce) { .bg-layer { transform: none; } }
-
-    /* 👇 make it match the old buttons */
-    #spotify-connect {
-      background: var(--gold-1);
-      color: #000;
-      border: none;
-      border-radius: 10px;
-      padding: 10px 18px;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(8px);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    #spotify-connect:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 25px rgba(255, 215, 0, 0.4);
-    }
-
-    #ugs-doc {
-  background: rgba(255, 255, 255, 0.25);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 10px;
-  padding: 10px 18px;
-  font-weight: 600;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-#ugs-doc:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 6px 25px rgba(255, 255, 255, 0.4);
-}
-
-#ambient-toggle{
-  background: rgba(255,255,255,0.20);
-  color:#fff;
-  border:1px solid rgba(255,255,255,0.28);
-  border-radius:10px;
-  padding:10px 14px;
-  font-weight:600;
-  cursor:pointer;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 20px rgba(0,0,0,.3);
-  transition: transform .2s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease;
-}
-#ambient-toggle:hover{ transform: translateY(-2px); background: rgba(255,255,255,0.30); }
-#ambient-toggle[aria-pressed="true"]{ background: rgba(255,255,255,0.35); }
-  
   </style>
 
   <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
   <script src="script.js" defer></script>
 </head>
 <body>
+  <!-- Grain texture overlay -->
+  <div id="grain" aria-hidden="true"></div>
   <!-- Dynamic blurred background (behind the page) -->
   <div id="bgA" class="bg-layer hidden"></div>
   <div id="bgB" class="bg-layer hidden"></div>
@@ -95,19 +44,16 @@
   <div id="toast-hotspot" style="position:fixed;left:0;bottom:0;width:64px;height:64px;z-index:2;"></div>
 
   <!-- toast -->
-  <div id="toast" style="position:fixed;left:16px;bottom:16px;display:none;gap:12px;align-items:center;
-    background:rgba(20,20,20,.92);color:#fff;border-radius:12px;padding:10px 12px;
-    box-shadow:0 8px 30px rgba(0,0,0,.35);backdrop-filter:blur(6px);z-index:3;">
-    <img id="toast-img" style="width:56px;height:56px;border-radius:8px;object-fit:cover"/>
-    <div style="display:flex;flex-direction:column;max-width:260px">
-      <div id="toast-title" style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-      <div id="toast-sub"   style="opacity:.85;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+  <div id="toast">
+    <img id="toast-img" alt="Album art" />
+    <div class="toast-info">
+      <div id="toast-title"></div>
+      <div id="toast-sub"></div>
     </div>
-
-    <div id="toast-controls" style="display:none;gap:8px;margin-left:8px">
-      <button id="btn-restart"   title="Restart track"    style="cursor:pointer;border:0;border-radius:6px;padding:6px 8px;background:#2a2a2a;color:#fff">⟲</button>
-      <button id="btn-playpause" title="Play/Pause"       style="cursor:pointer;border:0;border-radius:6px;padding:6px 8px;background:#2a2a2a;color:#fff">⏯</button>
-      <button id="btn-next"      title="Next track"       style="cursor:pointer;border:0;border-radius:6px;padding:6px 8px;background:#2a2a2a;color:#fff">⟶</button>
+    <div id="toast-controls">
+      <button id="btn-restart"   title="Restart track">⟲</button>
+      <button id="btn-playpause" title="Play/Pause">⏯</button>
+      <button id="btn-next"      title="Next track">⟶</button>
     </div>
   </div>
   
@@ -126,6 +72,7 @@
   Site Music
 </button>
 <button id="sp-panel-open" aria-label="Open Spotify panel">🎵 Spotify</button>
+<button id="music-mode-btn" aria-label="Enter Music Mode" style="display:none">🎧 Music Mode</button>
 </div>
     </header>
 
@@ -205,7 +152,55 @@
 
 
   <!-- ======================================================
+       MUSIC MODE OVERLAY
+       ====================================================== -->
+  <div id="music-overlay" style="display:none" aria-hidden="true">
+
+    <!-- Exit button -->
+    <button id="music-exit" aria-label="Exit Music Mode">✕ Exit</button>
+
+    <!-- Left: Now Playing -->
+    <div id="music-now">
+      <img id="music-art" src="" alt="" />
+      <div id="music-track-info">
+        <div id="music-title">Nothing playing</div>
+        <div id="music-artist"></div>
+        <div id="music-album"></div>
+      </div>
+
+      <!-- Progress -->
+      <div id="music-progress-wrap">
+        <div id="music-progress-bar">
+          <div id="music-progress-fill"></div>
+        </div>
+        <div id="music-progress-times">
+          <span id="music-time-cur">0:00</span>
+          <span id="music-time-dur">0:00</span>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div id="music-controls">
+        <button id="music-btn-shuffle"  class="music-btn music-btn--sm" title="Shuffle">⇄</button>
+        <button id="music-btn-prev"     class="music-btn" title="Previous">⏮</button>
+        <button id="music-btn-restart"  class="music-btn music-btn--sm" title="Restart">⟲</button>
+        <button id="music-btn-playpause" class="music-btn music-btn--lg" title="Play / Pause">⏸</button>
+        <button id="music-btn-next"     class="music-btn" title="Next">⏭</button>
+        <button id="music-btn-repeat"   class="music-btn music-btn--sm" title="Repeat">⟳</button>
+      </div>
+    </div>
+
+    <!-- Right: Queue -->
+    <div id="music-queue-panel">
+      <div id="music-queue-label">Up Next</div>
+      <div id="music-queue-list"></div>
+    </div>
+
+  </div>
+
+  <!-- ======================================================
        MEJIRO MCQUEEN CURSE OVERLAY
+       If you are reading this in DevTools... too late.
        ====================================================== -->
   <div id="mcqueen-overlay" style="display:none">
 
