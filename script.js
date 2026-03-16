@@ -1139,8 +1139,11 @@ const musicMode = {
     const overlay = this.el.overlay();
     if (!overlay) return;
     this.active = true;
-    overlay.style.display = 'grid';
-    requestAnimationFrame(() => overlay.classList.add('is-visible', 'is-entering'));
+    overlay.style.cssText = 'display:grid !important; opacity:0;';
+    requestAnimationFrame(() => {
+      overlay.style.opacity = '1';
+      overlay.style.transition = 'opacity .4s ease';
+    });
     document.body.style.overflow = 'hidden';
     await this.refresh();
     this.startProgress();
@@ -1150,10 +1153,8 @@ const musicMode = {
     const overlay = this.el.overlay();
     if (!overlay) return;
     this.active = false;
-    overlay.classList.remove('is-visible', 'is-entering');
-    setTimeout(() => {
-      overlay.style.display = 'none';
-    }, 350);
+    overlay.style.opacity = '0';
+    setTimeout(() => { overlay.style.display = 'none'; }, 400);
     document.body.style.overflow = '';
     this.stopProgress();
   },
@@ -1323,25 +1324,14 @@ const musicMode = {
 
 /* Wire music mode buttons */
 window.addEventListener('DOMContentLoaded', () => {
-  // Show the button once Spotify is confirmed connected
-  // (initSpotifyOnLoad already handles this via sp-panel-open — mirror it)
-  const observer = new MutationObserver(() => {
-    const panelBtn = el('sp-panel-open');
-    if (panelBtn && panelBtn.style.display !== 'none') {
-      const mmBtn = el('music-mode-btn');
-      if (mmBtn) mmBtn.style.display = 'block';
-    }
-  });
-  const panelBtn = el('sp-panel-open');
-  if (panelBtn) observer.observe(panelBtn, { attributes: true, attributeFilter: ['style'] });
-
-  // If already connected on load, show immediately
-  getAccessToken().then(token => {
-    if (token) {
-      const mmBtn = el('music-mode-btn');
-      if (mmBtn) mmBtn.style.display = 'block';
-    }
-  });
+  // Show button reliably once token confirmed
+  const showMusicBtn = () => {
+    const mmBtn = el('music-mode-btn');
+    if (mmBtn) mmBtn.style.display = 'block';
+  };
+  getAccessToken().then(token => { if (token) showMusicBtn(); });
+  // Also check after a short delay in case token refresh takes a moment
+  setTimeout(() => getAccessToken().then(token => { if (token) showMusicBtn(); }), 1500);
 
   el('music-mode-btn')?.addEventListener('click', () => musicMode.open());
   el('music-exit')?.addEventListener('click',     () => musicMode.close());
